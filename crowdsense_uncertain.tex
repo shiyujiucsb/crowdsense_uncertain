@@ -1,0 +1,1065 @@
+\documentclass{IEEEtran}
+
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{color}
+
+\newcommand{\comment}[1]{}
+
+%\renewcommand{\baselinestretch}{0.95}
+%\setlength{\textfloatsep}{0.1cm}
+%\setlength{\abovecaptionskip}{0.1cm}
+
+\begin{document}
+
+\title{Incentive Mechanisms for Crowdsourcing to Smartphones with Uncertain Sensing Time}
+\author{
+Shiyu Ji\textsuperscript\textdagger, Tingting Chen\textsuperscript\textsection, Fan Wu\textsuperscript *\\
+\textdagger\hspace{0.1cm}Oklahoma State University, shiyu@cs.okstate.edu\\
+\textsection\hspace{0.1cm}California State Polytechnic University, Pomona, tingtingchen@csupomona.edu\\
+*\hspace{0.1cm}Shanghai Jiao Tong University, fwu@cs.sjtu.edu.cn}
+\maketitle
+
+\newtheorem{definition}{Definition}
+\theoremstyle{definition}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{plain}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{plain}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{plain}
+
+\begin{abstract}
+Mobile phone sensing has become increasingly popular since it can collect and analyze real-time data anywhere anytime, especially with the help of mobile phone users via crowdsourcing. In order to stabilize the mobile crowdsourcing at a massive scale, incentive mechanisms are needed not only to stimulate the \emph{users} of mobile phones to participate in sensing, but also to give incentive to the organizer of the sensing tasks with maximum service time and payoff. In this paper, we study a real-world problem in mobile sensing, i.e., sensing {\color{black}time} uncertainty, which may lead to failures of existing incentive mechanisms. In particular, we model this problem as a perturbed Stackelberg game in which mobile phone users may actually conduct sensing tasks during different periods of time rather than what they intend, like through a trembling hand. We find that there exist \emph{Trembling-Hand Perfect Equilibria (THP)} given proper rewards. After characterizing THPs in this game with rigorous analysis, we design incentive mechanisms that can achieve a THP with the maximum system wide total sensing time and maximum platform utility. We also consider the case that the prior knowledge of sensing {\color{black}time} uncertainty characteristics is not available, and further extend our mechanisms to a sequentially perturbed game model. We design an algorithm to estimate the distribution of each user's sensing {\color{black}time} uncertainty. The estimation results converge to the actual value with no bias given sufficient previous games. We finally verify the correctness and efficiency of our proposed incentive mechanisms and algorithms through extensive experiments. %Finally, we discuss the related works in Section \ref{sec:related_work} and conclude this paper in Section \ref{sec:conclusion}.
+\let\thefootnote\relax\footnote{This work was supported in part by the State Key Development Program for Basic Research of China (973 project 2012CB316201), in part by China NSF grant 61422208 and 61272443, in part by CCF-Intel Young Faculty Researcher Program and CCF-Tencent Open Fund, in part by the Scientific Research Foundation for the Returned Overseas Chinese Scholars, State Education Ministry, and in part by Jiangsu Future Network Research Project No. BY2013095-1-10.}
+\end{abstract}
+
+\section{Introduction}
+
+%We have witnessed the fast proliferation of mobile phones during the past decade. By comparison with traditional PC and laptop, mobile phone owns advantages of portability and flexibility. Combined with diverse programmable devices, mobile phone is becoming unprecedentedly powerful and user-friendly. 
+
+%1. mobile phone sensing and applications
+%Mobile phones have brought revolutionary changes on numerous fields, such as healthcare, real-time monitoring, communication and social network \cite{lane:survey_mobile_sensing}.
+%Ubiquitous mobile phones around the planet can offer sensing service almost anytime anywhere.
+%That is the motivation of \emph{crowdsourcing} to mobile phones \cite{chat:crowdsourcing_smartphones}. 
+
+Ubiquitous smartphones with sensing capabilities have revolutionized the way people collect and analyze information. The embedded sensors such as camera, GPS, and acceleration sensors can provide first-hand surrounding information in various forms in real-time \cite{lane:survey_mobile_sensing}. This new paradigm of pervasive data collection can boost the evolution of numerous applications \cite{ganti:survey_crowdsensing,chat:crowdsourcing_smartphones,Mun09peir,Rachuri:2010,Kim:2011}, such as medical research \cite{Rachuri:2010} and the new targeted advertising in social networks \cite{Kim:2011}. %When considering all the mobile phones as a sensing network and enabling users to leverage the sensing capability of others' mobile phones, 
+Mobile phone sensing can make even wider impact, when the scale of sensing is greatly enlarged by crowdsourcing the sensing tasks to a large group of people.
+
+%2. incentive mechanisms and existing work
+A major challenge in achieving a stable crowdsourcing system for mobile phone sensing tasks is the incentive issue. The mobile sensor owners need incentive to contribute to a sensing task, while the network platform (serving as the sensing task initiator and organizer) also need properly designed mechanisms to obtain the balance between good sensing performance and low cost. Yang et al. \cite{yang:crowdsourcing} designed the first two incentive mechanisms for crowdsourcing to smartphones. Both {\color{black}of} the mechanisms require the platform to pay the participatory mobile phone users for their contributions, and guarantee desirable equilibria in the crowdsourcing process modeled either as a platform-centric game or as a user-centric auction. %Their proposed incentive mechanisms have high practical value since they were easy to implement and they showed their computational advantage when there were a large amount of participatory users. 
+With the increasing scale of users, there can be multiple platforms who are connected together via networks, forming a cloud-based system. For example, Sheng et al. \cite{sheng:s2aas} proposed the concept of Sensing as a Service for cloud-based platforms and designed incentive mechanisms for different scenarios. %the privacy and security issues in mobile sensing  have also been considered. Wu et al. \cite{wu:anonymity} guarantee K-Anonymity to protect user's privacy when manually operating on the platform database, and 
+%Since the research on mobile crowdsourcing especially in sensing applications has just started, there are still a lot of open incentive issues and scenarios that are not yet fully addressed.
+
+
+%Crowdsourcing is essentially a game, in which everyone wants to acquire maximized payment. The principle of crowdsourcing is to design an \emph{incentive mechanism} to sufficiently stimulate the users of mobile phones to participate in the sensing tasks and compete for a fixed reward, and the platform, who organizes the sensing tasks, can achieve maximized utility as well. The objective of the incentive mechanism is to compute the equilibria of the games. Under equilibria, each user's utility is maximized and thus the system has a stable strategy profile. Researchers developed extensive applications on crowdsourcing \cite{ganti:survey_crowdsensing} \cite{chat:crowdsourcing_smartphones} \cite{yang:crowdsourcing} \cite{sheng:s2aas} \cite{feng:imac}. 
+
+
+%However, error is a phenomenon of nature that no one can circumvent it \cite{venetis:error}. In mobile crowdsourcing, every participating user will probably make unintentional errors on its own sensing time, due to the limitation of hardware controls \cite{Grimes:sensor}. Moreover, as the planned sensing time of a user is usually a real number, it is extremely difficult for the mobile phones to execute sensing for exactly the same time length as planned due to different precisions.
+
+%\begin{figure}
+%\centering
+%\includegraphics[width=0.35\textwidth]{illustrate.eps}
+%\caption{An example demonstrates the sensing data quality directly causes the perturbations on the sensing time. The smiling blocks denote the sensing tasks with high-qualified results, and the sad blocks represent the tasks which obtain low-qualified results. All the three users aim to sense for $t$ time. However, user (b) senses for insufficient time since the left time interval is not enough to finish one task, and user (c) suffers extra time because the last task yields low-qualified result which requires more time to process.}
+%\label{fig:illustrate}
+%\end{figure}
+
+However, to the best of our knowledge, no existing research work so far has considered a critical issue in mobile crowdsourcing, i.e., the \emph{sensing {\color{black}time} uncertainty}. When the sensors are interacting with the physical world, such as collecting images or location information, data is often associated with uncertainty due to reasons like sampling errors, inaccurate measurements, accidental events, etc. There are extensive crowdsensing applications leveraging data mining and learning techniques on client terminals (i.e., smartphones) \cite{ra2012medusa} \cite{chon2012automatically} \cite{chon2013understanding}. In order to guarantee the successive data processing results, the sensing behaviors of the client terminals can be significantly influenced (e.g., repeating or extending sensing time) by some factors such as data quality \cite{hand2007principles}, data source diversity \cite{chen1996data} and interaction with big data \cite{prather1997medical}. 
+In this way, the uncertainty in data can further propagate to the uncertainty in sensing behaviors. 
+%The sensing {\color{black}time} uncertainty is originated from the uncertainty of collected data, which is often found in real applications due to reasons like 
+%been done on the incentive mechanism design with \emph{sensing {\color{black}time} uncertainty} in mobile crowdsourcing. 
+%Uncertainty has been prevailing over the fields of data mining and knowledge discovering .  
+Although in the field of database, much research has focused on managing data uncertainty (e.g., \cite{hand2007principles} \cite{fayyad1996data}), it is not clear how sensing uncertainty affects the crowdsourcing procedure and results. Moreover, how sensing {\color{black}time} uncertainty can impact the incentive mechanisms therein is also unknown. {\color{black}There are also some significant mobile phone based sensing time constraints, including the required initialization time of the sensing application \cite{charland2011mobile}, the maximum sensing time allowed by the battery charge \cite{wang2009framework}, the reaction delay of the sensor \cite{ra2012medusa}, etc. These constraints can also introduce sensing time uncertainty.}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.4\textwidth]{intro_fig.eps}
+\caption{An example of sensing {\color{black}time} uncertainty in mobile photo sensing at places. Each participatory smartphone applies data mining techniques to analyze its own captured photos, and then uploads the mined useful information to the platform. The yellow smiling faces indicate the photos of good quality, while the sad ones denote the low-qualified noisy images.}
+\label{fig:illustrate}
+\end{figure}
+
+Figure \ref{fig:illustrate} demonstrates a concrete example based on CrowdSense@Place in \cite{chon2012automatically}. In CrowdSense@Place, each user captures the photos of the nearby locations with the camera of the smartphone. Meanwhile, the smartphone mines the captured photos in order to extract some hidden interesting patterns. Each user will upload the useful information it obtains from the photos to the platform, if any. The quality of the photos plays an important role in determining the behaviors of the smartphone sensing. %The uncertainty in photo quality will cause the uncertainty in sensing duration, because 
+In particular, low-qualified photos usually require more sensing time (i.e., for the convenience of image data mining, it requires the camera to recapture). Unfortunately, the mobile phone users are unable to exactly predict the sensing data quality. Thus the uncertain data quality of the photos introduces uncertainty in each smartphone's sensing {\color{black}time}. %It is worth researching the impacts brought by sensing {\color{black}time} uncertainty.
+
+With the consideration of sensing {\color{black}time} uncertainty, incentive mechanisms for crowdsensing need to be revisited.
+%The existence of sensing {\color{black}time} uncertainty may make existing incentive mechanisms fail. %Thus, we cannot neglect sensing time error for the research of crowdsourcing.
+In fact, in the presence of uncertainty, it is not clear how the users need to adjust their strategy depending on the uncertainty estimation for their own devices. For instance, %if the possible sensing time error for a particular user can be very big, he may choose to stop very short sensing services. 
+if the sensing {\color{black}time} uncertainty can bring significant perturbations to the sensing duration, the user may refuse to offer the very short sensing services. The reason is that he may end up with deficit by unintentionally sensing much longer than planned, and the cost of sensing is much higher than the amount of money actually paid based on the plan. Then {\color{black}the problem of} how to stimulate the users and ensure the system performance in the presence of sensing {\color{black}time} uncertainty becomes a realistic and challenging problem.
+%Therefore, considering time sensing error will make the design of incentive mechanisms much more complicated than traditional solutions, and new incentive mechanisms are truly needed.
+
+%It is challenging to design incentive mechanisms for crowdsourcing with sensing time error. The existence of error will make the actual sensing time different from the planned value. If the planned sensing time is less than the magnitude of sensing time error, the expected actual sensing time will be longer than the user's determined strategy. If the planned sensing time is less than half of the error magnitude, the user will not offer sensing service at all in order to avoid deficit. These diverse cases make the selection of participating users a hard problem. On the other hand, if the incentive mechanism neglects errors, some users may find their utilities are negative, and thus they will choose no sensing offer, indicating the incentive mechanism not \emph{truthful}. Thus it is complicated but valuable to research the impact of sensing time error on the incentive mechanism.
+
+In this paper, we investigate the mobile crowdsourcing system with possible sensing {\color{black}time} uncertainty. 
+To address the issues of sensing {\color{black}time} uncertainty, we model the crowdsourcing process as a \emph{perturbed game}, in which each player (user) executes its planned sensing time (strategy) with trembles. % i.e., there is a distance between the intended and the actual sensing times. %Usually the error distance is bounded for a particular hardware device, and can be obtained by the platform together with the sensing c%To maximize each user's utility locally, 
+The solution concept \textit{Nash Equilibrium} does not take the possibility of off-equilibrium play into consideration, and cannot guarantee convergence properties. 
+We will leverage a standard solution concept in perturbed game, \emph{Trembling-Hand Perfect Equilibria (THP)}, to examine the system properties when using our incentive mechanisms. 
+We aim to appropriately design a payment formula for each user, such that no user can increase its own expected utility by intentionally changing strategy unilaterally even though they may have small deviations in reality. On the aspect of the platform, our goal is to maximize the platform utility, while taking the system performance into consideration. Our main idea is to strategize the total reward that the platform is going to distribute, so that we can make sure the existence and optimality of the THP for the platform.
+
+ %Since there is no THP if the total reward is very limited, we strategize the reward to ensure the existence of THP, while the platform can avoid deficit. 
+%We also consider the case that the maximum error distances of users are not yet determined, and estimate the distances along the sequential games. Extensive experiments verified our incentive mechanism is incentive-compatible, optimal and efficient.
+\noindent \textbf{Our contributions are as follows:}
+\begin{itemize}
+\item We are the first to investigate the impact of sensing {\color{black}time} uncertainty in the problem of crowdsourcing to mobile phones. We model the crowdsourcing problem with sensing {\color{black}time} uncertainty as a perturbed game, and find the expected best response of each user given others' strategies, and show that the strategy profile consisting of the expected best responses is a Trembling-Hand Perfect Equilibrium.
+\item We find that in the perturbed crowdsourcing game, there will be no THP if the total reward is too small, and show that our incentive mechanism guarantees THP given sufficiently large total reward. We also derive the theoretical upper bound of the reward in order to make the platform avoid deficit.
+\item We design the sensing time determination algorithm for each user to calculate its strategy in THP, which guarantees system-wide total sensing time. %That is, no user can increase its own utility by choosing sensing time other than our result unilaterally. 
+We also design the total reward determination algorithm for the platform to maximize the platform utility. Our algorithm achieves linear complexity on the number of users.
+\item For more real-world scenarios, where the sensing {\color{black}time} uncertainty characteristics of each user are not prior knowledge, we model the problem as a perturbed sequential game, and propose a maximum perturbation estimation algorithm to estimate each user's uncertainty pattern. We rigorously prove that our estimation is unbiased and its variance converges to zero given sufficient rounds of games. Thus the performance of the whole incentive mechanism will get better while the platform accumulates the previous gaming experience.
+\item We conduct extensive experiments on our proposed incentive mechanisms. It verifies that our proposed incentive mechanism is incentive-compatible, optimal and efficient.
+\end{itemize}
+
+%\subsection{Paper Organization}
+We organize the rest of this paper as follows. In Section \ref{sec:system_model}, we expatiate our proposed system models and the general assumptions. %Section \ref{sec:preliminaries} will talk about the technical preliminaries of our incentive mechanism. 
+Then we show the negative impacts of the sensing {\color{black}time} uncertainty on the crowdsourcing incentive mechanism by the comparative simulations in Section \ref{sec:impact}. In Section \ref{sec:sensing_determine}, we propose the user-aspect algorithm to calculate its own strategy, and in Section \ref{sec:platform_reward}, we present the algorithm to help platform determine the proper reward. Then we show how to estimate the maximum sensing perturbation in Section \ref{sec:estimation}. We demonstrate the simulation results in Section \ref{sec:simulation}. Finally we talk about the related works in Section \ref{sec:related_work} and conclude this paper in Section \ref{sec:conclusion}. %Due to space limitation, please see \cite{JC13} for the proofs of some lemmas and theorems.
+
+\section{System Model}
+\label{sec:system_model}
+In this section, we will introduce the general mobile phone sensing system where our incentive mechanism is applied. We will also model the crowdsourcing game with uncertainty perturbations.  %, and then we will consider the scenario that the perturbation distribution is not prior knowledge, incurring our model of sequential games.}
+%This section will talk about the following items:
+%\begin{itemize}
+%\item General mobile phone sensing system;
+%\item crowdsourcing game with error perturbation;
+%\item crowdsourcing game with error perturbation for sequential games.
+%\end{itemize}
+
+\subsection{General Mobile Phone Sensing System}
+Fig. \ref{fig:mobile_sensing_system} shows the architecture of the general mobile phone sensing system. The system is composed of a \emph{platform} and numerous smartphone \emph{users}. The users connect to and register at the platform through wireless communication. The platform may have some sensing tasks that need to be crowdsourced to smartphone users to leverage their distributed sensing resources.
+When planning the sensing tasks, the platform strategizes a proper reward based on its knowledge about each user. Then the platform is responsible to publicize the reward and the descriptions of the sensing tasks. Usually, there are more than one users who will participate in the sensing tasks, and the participation of each user will yield a \emph{cost} (we will expatiate it later). In order to compensate the cost, the platform gives a \emph{payment} to each user. %based on the quality of the sensing service it offered. 
+To participate in sensing, every user is supposed to tell the platform its planned sensing time. After collecting the sensing plans from all the users, the platform computes the payment for each user and sends the payments back to the users instantly. The users who receive payments will execute the sensing tasks and send the sensed results back to the platform. %This is the complete procedure of mobile phone sensing.
+
+\begin{figure}[!t]
+%\begin{minipage}[b]{0.45\linewidth}
+\centering{}
+\includegraphics[width=0.35\textwidth]{mobile_sensing_system.eps}
+\caption{General mobile phone sensing system}
+\label{fig:mobile_sensing_system}
+%\end{minipage}
+%\hspace{0.5cm}
+%\begin{minipage}[b]{0.45\linewidth}
+%\centering{}
+%\includegraphics[width=\textwidth]{sequential_model.eps}
+%\caption{Mobile phone sensing system with sequential games}
+%\label{fig:sequential_model}
+%\end{minipage}
+\end{figure}
+
+We assume each user and the platform are \emph{rational} and \emph{selfish}. %as the whole sensing task is actually a game, in which every user competes for as much reward as possible. 
+The users aim to earn as much reward as possible considering their own competitions.
+For the platform, there are two objectives: 1) to ensure the system can converge to a desirable stable state; 2) to have the sensing tasks completed with good quality and reasonably low payment. 
+%make its own utility as large as possible. Since each user and platform aims to maximize its own utility,
+
+Corresponding to the procedures described above and considering the phenomenon of sensing {\color{black}time} uncertainty in the extensive existing crowdsourcing techniques, we provide a new model in this paper to approach the problem. Our incentive mechanism should ensure sufficient incentive for each member in our sensing system. 
+
+\subsection{Crowdsourcing Game with Uncertainty Perturbations}
+\label{sec:model}
+%We study the crowdsourcing model in \cite{yang:crowdsourcing}. 
+We model the crowdsourced mobile sensing problem as a perturbed \emph{Stackelberg game} \cite{basar:game}, in which the platform is the leader and the users are the followers. There are two phases in the game. The platform publicizes the reward $R$ and sensing task descriptions in the first phase. The amount of the reward $R$ from the platform is a positive monetary incentive given by the platform. For the second phase, each user strategizes its own intended sensing time (strategy $t_i$) to achieve maximized utility, based on the reward and other users' conditions (including costs and perturbations). Thus, the actual sensing time of user $i$ is $\overline{t}_i=t_i+\varepsilon_i$, where $\varepsilon_i$ is the uncertainty perturbation, a bounded random variable. The perturbed game indicates that no user can predict its actual sensing time exactly. In game theory, we have a concept, the Totally Mixed Strategy Profile, to describe the scenario here. %However, the crowdsourcing model in \cite{yang:crowdsourcing} did not take error of sensing time into consideration. 
+
+\begin{definition}
+{\bf (Totally Mixed Strategy Profile)}: A strategy profile $t=\{t_i\}_{i=1}^n$ is totally mixed if any action of any user owns a positive probability\footnote{In this paper, $n$ denotes the number of all the users, and we do not distinguish the terms \emph{strategy} and \emph{action}.}.
+\end{definition}
+
+We assume the perturbation $\varepsilon_i$ is distributed within its bounded support interval, and the middle point of the interval is the mean of the perturbation, based on the results in \cite{wmb, burkardt2014truncated} and \cite{damien2001sampling}. Please see Appendix \ref{sec:dis_assume} for the details. The support interval $I$ of the perturbation $\varepsilon_i$ should guarantee the actual sensing time is positive. That is, if the strategized sensing time is $t_i$, the support interval $I$ should be $(\max{\{0,t_i-A_i\}},t_i+A_i)$, where $A_i$ denotes the maximum amplitude of $\varepsilon_i$, and its mean value is the middle point of the interval. A negative actual sensing time has no physical meaning.
+
+%{\color{black}Maximum perturbation amplitude $A_i$ is the least upper bound of $|\varepsilon_i|$. We assume the distribution of $\varepsilon_i$ is uniform within the neighborhood around 0 with the radius of the amplitude $A_i$. Meanwhile, the user strategy cannot be negative in the real world.} Thus the probability distribution of $\varepsilon_i$ is given in three cases:
+%\begin{itemize}
+%\item {\bf Case 1}: If $t_i\geq A_i$, then the probability density function of $\varepsilon_i$ is specified as (\ref{eqn:uniform1}).
+%\begin{equation}
+%\label{eqn:uniform1}
+%p_i(\varepsilon_i)=\left\{
+%\begin{array}{l l}
+%\frac{1}{2A_i} & \quad \text{if $\varepsilon_i \in (-A_i,A_i)$}\\
+%0 & \quad \text{otherwise}
+%\end{array} \right.
+%\end{equation}
+%{\color{black}That is, the actual strategy of the user $i$ resides within the interval $(t_i-A_i,t_i+A_i)\subseteq\mathbb{R}^+$.}
+%\item {\bf Case 2}: If $0 < t_i < A_i$, then the probability density function of $\varepsilon_i$ is specified as (\ref{eqn:uniform2}).
+%\begin{equation}
+%\label{eqn:uniform2}
+%p_i(\varepsilon_i)=\left\{
+%\begin{array}{l l}
+%\frac{1}{t_i+A_i} & \quad \text{if $\varepsilon_i \in (-t_i,A_i)$}\\
+%0 & \quad \text{otherwise}
+%\end{array} \right.
+%\end{equation}
+%{\color{black}This distribution can guarantee each user strategy cannot be negative, with the corresponding interval $(0,t_i+A_i)$.}
+%\item {\bf Case 3}: If $t_i = 0$, then perturbation $\varepsilon_i \equiv 0$. The user will not sense at all in order to avoid deficit.
+%\end{itemize}
+
+We denote by $\kappa_i$ user $i$\rq{}s cost unit, the cost per time unit. Provided the actual sensing time $\overline{t}_i=t_i+\varepsilon_i$ of user $i$, its utility $\overline{u}_i$ is the payment $p_i$ distributed by the platform minus the sensing cost $\kappa_i\overline{t}_i$.
+\begin{equation}
+\overline{u}_i=p_i-\kappa_i\overline{t}_i,\forall i\in\mathcal{U},
+\end{equation}
+where $\mathcal{U}$ denotes the set of all the users. We let the platform distribute the reward $R$ proportionally to each user\rq{}s \emph{expected} sensing time. That is $p_i=\frac{\operatorname{E}(\overline{t}_i)}{\sum_{j\in\mathcal{U}}{\operatorname{E}(\overline{t}_j)}}R$. Then the \emph{expected} utility of user $i$ is:
+\begin{equation}
+\label{eqn:expected_user_utility}
+\operatorname{E}(\overline{u}_i)=\left\{
+\begin{array}{l l}
+\frac{t_i}{\Omega}R-\kappa_it_i & \quad \text{$t_i> A_i$,}\\
+\frac{t_i+A_i}{2\Omega}R-\kappa_i\frac{t_i+A_i}{2} & \quad \text{$0<t_i\leq A_i$,}\\
+0 & \quad \text{$t_i=0$.}
+\end{array} \right.
+\end{equation}
+where $t_i$ is the strategized sensing time of user $i$, and $\Omega$ is the sum of expected sensing time of the users:
+\begin{equation}
+\label{eqn:omega}
+\Omega = \sum_{i\in\mathcal{U}}\operatorname{E}(t_i+\varepsilon_i) = \sum_{j\in \mathcal{S}_1}\frac{t_j+A_j}{2}+\sum_{j\in \mathcal{S}_2}t_j.
+\end{equation}
+Here $\mathcal{S}_1,\mathcal{S}_2$ are the sets of the users such that $\forall i\in\mathcal{S}_1,0<t_i\leq A_i$ and $\forall i\in\mathcal{S}_2,t_i> A_i$. The union $\mathcal{S}=\mathcal{S}_1\cup\mathcal{S}_2$ is the \emph{support set} (Definition \ref{def:support_set}) of the strategy profile. Since the existence of uncertainty makes the crowdsourcing system a perturbed game, we have to consider expected utility rather than the pure utility. The utility of the platform is (\ref{eqn:platform_utility}).
+\begin{equation}
+\label{eqn:platform_utility}
+\overline{u}_0=\lambda \log{(1+\sum_{i\in\mathcal{U}}\operatorname{E}(t_i+\varepsilon_i))}-R
+\end{equation}
+where $\lambda > 1$ is the revenue coefficient, and the $\log$ term shows the diminishing return of the platform on the sum of expected sensing time of users {\color{black}\cite{yang:crowdsourcing}}.
+
+%Each user aims to achieve the maximized utility. The lower bound of $t_i$ for any user $i$ is 0 as no rational user will accept deficit. 
+%The objective of the platform is to choose reward $R$ {\color{black}that can maximize $\overline{u}_0$, while maintaining good system performance.} %If the platform utility is always negative as long as we conduct the sensing work, the platform will strategize $R=0$ to avoid deficit.
+The standard solution concept used in perturbed game is Trembling-Hand Perfect Equilibrium (THP) \cite{simon:thp_infinite}. THP is a refinement of Nash Equilibrium (NE), and it is defined as the limit of a sequence of totally mixed strategy profiles. We give the related definitions as follows.
+
+{\color{black}
+\begin{definition}
+\label{def:best_response}
+{\bf (Expected Best Response Strategy)} Given the strategies of all the users except $i$, a strategy is user $i$'s expected best response strategy, denoted by $\beta_i(t_{-i})$, if it maximizes user $i$'s expected utility $\operatorname{E}(\overline{u}_i)$.
+\end{definition}
+}
+
+\begin{definition}
+\label{def:thp}
+{\bf (Trembling-Hand Perfect Equilibrium)} The strategy profile $t^{e}=\{t_i^{e}\}_{i=1}^{+\infty}$ with uncertainty perturbation $\varepsilon=\{\varepsilon_i\}_{i=1}^{+\infty}$ is a Trembling-Hand Perfect Equilibrium of the perturbed game if there exists a sequence of totally mixed strategy profiles $\{t^i\}_{i=1}^{+\infty}$ s.t. $\lim_{i\rightarrow +\infty}t^i = t^e$ and $t_i=\beta_i(t_{-i}^{e})$ for any user $i$. Here $\beta_i$ is user $i$'s expected best response.
+\end{definition}
+
+{\color{black}THP can guarantee that,} even though the user cannot control its own sensing time accurately, it will gain nothing by choosing another strategy unilaterally in the long term. That means, the \emph{expected} utility of any user is maximized given other users' strategies. %Thus the concept of THP is essentially NE in a statistical sense.
+
+%\subsection{Sequential Crowdsourcing Games with uncertainty Perturbation}
+%For any user $i$, to maximize its own utility, it has to know other users' cost units $\kappa_{-i}$ and maximum {\color{black}uncertainty perturbations} $A_{-i}$, and the platform needs information about $A$ to calculate the payment for each user. However, usually the maximum {\color{black}uncertainty perturbations} are not prior knowledge except for the mobile phone owner at the beginning of the game. %In fact, $A_i$ of user $i$ can only be determined by real-world sensing using statistical methods. 
+%In this case we need to measure the uncertainty perturbations during the games. In this model %as Fig. \ref{fig:sequential_model}, 
+%there are multiple games which happen sequentially: $G^{(1)},G^{(2)},\cdots,G^{(N)}$. For game $G^{(k)}$, the previous games are $G^{(1)},G^{(2)},\cdots,G^{(k-1)}$. Thus the number of previous games is $r=k-1$. Let $\hat{A}^{(k)}$ be the \emph{estimated} maximum {\color{black}uncertainty perturbations} of users, and for this game, user $i$'s expected utility is
+%\begin{equation}
+%\label{eqn:user_utility_hat}
+%\mathrm{E}(\overline{u}_i)=\left\{
+%\begin{array}{l l}
+%\frac{t_i}{\hat{\Omega}^{(k)}}R-\kappa_i t_i & \quad \text{if $t_i > \hat{A}_i^{(k)}$,}\\
+%\frac{t_i+\hat{A}_i^{(k)}}{2\hat{\Omega}^{(k)}}R-\kappa_i\frac{t_i+\hat{A}_i^{(k)}}{2} & \quad \text{if $0<t_i\leq \hat{A}_i^{(k)}$,}\\
+%0 & \quad \text{if $t_i=0$.}
+%\end{array} \right.
+%\end{equation}
+%Here $\hat{\Omega}^{(k)}$ is specified as follows: $\hat{\Omega}^{(k)} = \sum_{j\in \mathcal{S}_1}\frac{t_j+\hat{A}_j^{(k)}}{2}+\sum_{j\in \mathcal{S}_2}t_j$. The platform utility remains the same as (\ref{eqn:platform_utility}).
+
+
+%Our objectives are
+%\begin{itemize}
+%\item Design an algorithm to estimate the maximum error distances $A$ according to the previous games;
+%\item Prove the result of the estimation is accurate (unbiased) given sufficient previous games.
+%\end{itemize}
+
+%\section{Technical Preliminaries}
+%\label{sec:preliminaries}
+%This section will introduce the basic concepts of our incentive mechanism, including perturbed game, totally mixing, expected best response and Trembling-Hand Perfect Equilibrium \cite{selten:te}.
+
+In Table \ref{tab:symbol_list} we summarize the frequently used notations.
+\begin{table}[!t]
+\begin{tabular}{l l}
+\toprule
+Notation & Description\\
+\hline
+$\mathcal{U}$ & set of users\\
+$n$ & number of users\\
+$R$ & reward of the platform\\
+$t_i$ & sensing time/strategy of user $i$\\
+$t$ & strategy profile of all users\\
+$\overline{t}$ & actual sensing time of all users\\
+$t_{-i}$ & strategy profile excluding user $i$'s strategy\\
+$\kappa_i$ & cost unit of user $i$\\
+$A_i$ & maximum {\color{black}sensing perturbation} of user $i$\\
+$\varepsilon_i$ & uncertainty perturbation of sensing time/strategy of user $i$\\
+$\beta_i(t_{-i})$ & expected best response strategy of user $i$ given $t_{-i}$\\
+$\overline{u}_i$ & utility function of user $i$\\
+$\overline{u}_0$ & utility function of the platform\\
+$\lambda$ & revenue coefficient in $\overline{u}_0$\\
+$\mathcal{S}_1$ & set of users s.t. $\forall i\in\mathcal{S}_1$, $0<t_i\leq A_i$\\
+$\mathcal{S}_2$ & set of users s.t. $\forall i\in\mathcal{S}_2$, $t_i > A_i$\\
+$\mathcal{S}$ & support set, which is $\mathcal{S}_1\cup\mathcal{S}_2$\\
+$\delta$ & absolute error allowed by the system\\
+$G^{(k)}$ & the k-th game\\
+$r$ & number of previous games\\
+$\hat{A}_i$ & estimated maximum {\color{black}sensing perturbation} of user $i$\\
+\bottomrule
+\smallskip
+\end{tabular}
+\caption{Frequently used notations}
+\label{tab:symbol_list}
+\end{table}
+%For perturbed game, each user can only choose totally mixed strategy. In our perturbed game, the action of every user is a sensing time interval $I\subset [0,+\infty)$.
+
+\section{Negative Impacts of Sensing {\color{black}Time} Uncertainty on Crowdsensing Incentive Mechanism}
+\label{sec:impact}
+{\color{black}Before the study of the incentive mechanism with sensing {\color{black}time} uncertainty, we need to verify the significance of the negative impacts caused by sensing {\color{black}time} uncertainty on our crowdsourcing game. In this section, we will quantify and analyze the negative influences of uncertainty, using the results of the comparative simulations. The classical crowdsourcing game leverages the Nash Equilibrium to optimize the utilities.} However, the sensing {\color{black}time} uncertainty introduces the perturbations on the users\rq{} strategies (sensing times), making the strategy profile deviate from the equilibrium, and indirectly perturbing the platform utility. To study the negative impacts of sensing {\color{black}time} uncertainty, we adopt the following two metrics to illustrate the distance between the perturbed strategy profile and the theoretic equilibrium. On the side of users, we define the Average Deviation Rate of User Utility $\Delta_u$ as $\Delta_u = \frac{\sum_{i\in\mathcal{S}}|\overline{t}_i - \beta (\overline{t}_{-i})|}{\sum_{i\in\mathcal{S}}|\beta (\overline{t}_{-i})|}$,
+where $\overline{t}_i$ means the actual sensing time of user $i$, and $\beta(\overline{t}_{-i})$ denotes the best response of user $i$ given the actual strategy profile $\overline{t}$ using the method in \cite{yang:crowdsourcing}. $\Delta_u$ illustrates the distance from the actual user strategy profile to the equilibrium. 
+For the platform, we define the Deviation Rate of Platform Utility $\Delta_p$ as $\Delta_p = \frac{|\overline{u}_0 - \hat{u}_0|}{|\hat{u}_0|}$, 
+where $\hat{u}_0$ is the platform utility provided the equilibrium (refer to \cite{yang:crowdsourcing} for the analysis), and $\overline{u}_0$ is the platform utility for the perturbed strategy profile. The value of $\Delta_p$ demonstrates the significance of the perturbations introduced by the sensing {\color{black}time} uncertainty on the platform utility.
+
+In order to quantify the negative impacts of sensing {\color{black}time} uncertainty, we have two simulations of the games with and without introducing the sensing {\color{black}time} uncertainty respectively, and then we calculate the metrics $\Delta_u$ and $\Delta_p$ based on the simulation results. We set different amplitudes of the uncertainty perturbations in different scenarios. For each round of game, we assume the maximum amplitudes of the perturbations for each user are identical (denoted by $\max{|\varepsilon|}$), and the actual perturbations of each user distribute uniformly over the interval $(-\max{|\varepsilon|},\max{|\varepsilon|})$. The parameters of our simulation have the default settings as follows: $R=20$, $n=1000$, $\lambda=50$ and $\max_{i\in\mathcal{U}}\kappa_i = 5$. Each statistical result is averaged over 1000 instances.
+
+\begin{figure}[!t]
+	\begin{minipage}[b]{0.49\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{apprx.eps}
+	\caption{$\Delta_u \sim \max{|\varepsilon|}$}
+	\label{fig:Du_t}
+	\end{minipage}
+	\hfill
+	\begin{minipage}[b]{0.49\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{u0_app.eps}
+	\caption{$\Delta_p \sim \max{|\varepsilon|}$}
+	\label{fig:Dp_t}
+	\end{minipage}
+\end{figure}
+
+{\color{black}
+Here we discuss the obtained results. Figure \ref{fig:Du_t} and Figure \ref{fig:Dp_t} show that both the average user utility deviation rate $\Delta_u$ and the platform utility deviation rate $\Delta_p$ increase when the maximum amplitude of the uncertainty perturbations increases. That is, the distance between the perturbed strategy profile and the optimal state becomes larger. This is because more significant uncertainty causes greater perturbations on each user's strategies. Since user utility deviation rate increases when uncertainty perturbations amplify, it will consequently contribute to the significant fluctuations on platform utility, increasing its deviation rate as a result. 
+Thus, the uncertainty perturbation has significant negative impacts on the classical crowdsourcing incentive mechanisms. The situation will become even worse when the amplitudes of the uncertainty perturbations increase.
+}
+
+\section{Determining User Sensing Time with Uncertainty Perturbation}
+\label{sec:sensing_determine}
+
+%We first introduce our proposed incentive mechanism from the view of users. The crowdsourcing game with uncertainty perturbation is essentially a perturbed \emph{Stackelberg game} \cite{basar:game}, with platform as the leader and users as the followers. There are two phases in the game. The platform publicizes the reward $R$ and sensing task description during the first phase, and each user strategizes its own \emph{intended} sensing time (strategy $t_i$) to achieve the maximized utility during the second phase. The actual sensing time of user $i$ can be presented as $\overline{t}_i=t_i+\varepsilon_i$, where $\varepsilon_i$ is the uncertainty perturbation. This means the game is perturbed, and each user has infinite actions and no user can predict its actual sensing time. Our objective is to find a strategy profile, if any, that optimizes system performance in terms of total sensing time.
+Section \ref{sec:impact} indicates the classical game model with Nash Equilibrium has significant limitations when considering sensing {\color{black}time} uncertainty in the crowdsensing game. To address this problem, we model the crowdsourcing system as a perturbed Stackelberg game with the solution concept Trembling-Hand Perfect Equilibrium as described in Section \ref{sec:model}. In this section, we will show how to find a THP strategy profile that optimizes the total sensing time of the perturbed game. Theorem \ref{thr:thp} shows the sufficient condition to obtain THP in the game. Lemma \ref{lem:0} presents a trivial THP, in which no sensing happens. Theorem \ref{thr:best_response} shows how to calculate the non-trivial THP based on other users\rq{} strategies, while Theorem \ref{thm:1} shows the calculation without the knowledge of other user\rq{}s strategies. Based on our theoretic results, we propose Algorithm \ref{alg:THP} to determine the user strategy profile that can achieve the maximum total sensing time. Theorem \ref{thr:THP} shows the correctness of Algorithm \ref{alg:THP}, and Theorem \ref{thm:te_exists} reveals that a big enough reward can guarantee the existence of non-trivial THP.
+
+\subsection{Trembling-Hand Perfect Equilibrium for Crowdsourcing Game with uncertainty Perturbation}
+%Since there exists uncertainty perturbation on sensing time, each user cannot execute sensing exactly as planned. Thus we cannot use the general concept of Nash Equilibrium (NE).% as \cite{yang:crowdsourcing} did. Instead, we use the concept of \emph{Trembling-Hand Perfect Equilibrium}. We first find that if we can find a strategy profile $\overline{t}$ s.t. $\forall i\in\mathcal{U}$, $\overline{t}_i=\beta_i(\overline{t}_{-i})$ as defined in Definition \ref{def:best_response}, we conclude that $\overline{t}$ is THP. That is Theorem \ref{thr:thp}.
+%{\color{black}Section \ref{sec:impact} demonstrates the negative impacts brought by the sensing {\color{black}time} uncertainty on the utilities of the crowdsensing incentive mechanism. Thus, {\color{black}we are urged} to seek another appropriate solution concept for the incentive mechanism with uncertainty instead of the Nash Equilibrium. 
+The Trembling-Hand Perfect Equilibrium is a proper solution to adapt to the perturbations introduced by the uncertainty. Theorem \ref{thr:thp} reveals that a strategy profile $\overline{t}$ s.t. $\forall i\in\mathcal{U}$, $\overline{t}_i=\beta_i(\overline{t}_{-i})$ as defined in Definition \ref{def:best_response} suffices that $\overline{t}$ is THP.
+
+\begin{theorem}
+\label{thr:thp}
+For a strategy profile $\overline{t}$ of the perturbed game, if $\overline{t}_i=\beta_i(\overline{t}_{-i})$ for any user $i$, $\overline{t}$ is THP.
+\end{theorem}
+\begin{IEEEproof}
+Let $\mathcal{T}=\{T^j\}_{j=1}^{+\infty}$ be a strategy profile sequence s.t. for any user $i$ in profile $T^j$, its strategy $T_i^j=[\overline{t}_i,\overline{t}_i+\frac{A_i}{2^j}]$. Since $T_i^j \subseteq [\max\{0,\overline{t}_i-A_i\},\overline{t}_i+A_i]$, the probability density function is always positive over $T_i^j$. Thus $T^j$ is totally mixed, and $\mathcal{T}$ is a totally mixed profile sequence. According to the Nested Interval Theorem, $\mathcal{T}$ converges to a single point (pure strategy). Since $\forall i,j$, $\overline{t}_i\in T_i^j$, $\lim_{j\rightarrow +\infty}T_i^j=\overline{t}_i$. Thus, $\lim_{j\rightarrow +\infty}T^j=\overline{t}$. According to Definition \ref{def:thp}, $\overline{t}$ is THP.
+\end{IEEEproof}
+
+We first discuss a trivial case of THP, in which no user will offer sensing service as stated in Lemma \ref{lem:0}. Since there is no sensing work for trivial THP at all, we should avoid this case in our incentive mechanism design by letting the platform choose a proper reward. In Lemma \ref{lem:0}, $\mathcal{S}$ denotes the set of users with positive sensing time.
+
+\begin{lemma}
+\label{lem:0}
+1) If $R<\frac{\min_{j\in\mathcal{U}}A_j\kappa_j}{2}$, there is a \emph{unique} trivial THP $t^{e}$ s.t. $\forall i\in \mathcal{U}, t_i^{e}=0$.
+2) For non-trivial THPs, $|\mathcal{S}|>1$.
+\end{lemma}
+\begin{IEEEproof}
+1) We assume there exists $t_i>0$ under THP. Then we have two cases: 1) If $i\in\mathcal{S}_1$, $\operatorname{E}(\overline{u}_i)=\frac{t_i}{\sum_{j\in\mathcal{U}}t_j}R-\kappa_i\frac{t_i+A_i}{2}<R-\kappa_i\frac{t_i+A_i}{2}<R-\kappa_i\frac{A_i}{2}<0$. 2) If $i\in\mathcal{S}_2$, $\operatorname{E}(\overline{u}_i)=\frac{t_i}{\sum_{j\in\mathcal{U}}t_j}R-\kappa_it_i<\frac{t_i}{\sum_{j\in\mathcal{U}}t_j}R-\kappa_iA_i<0$. Thus, for user $i$, $t_i=0$ is always better, since every $t_i>0$ will cause deficit. Hence there is no THP other than the trivial one.\par{}
+2) For the trivial THP, $|\mathcal{S}|=0$. We assume there is a THP s.t. $|\mathcal{S}|=1$. Let $\mathcal{S}=\{i\}$. We have two cases: 1) If $i\in\mathcal{S}_1$, $\operatorname{E}(\overline{u}_i)=R-\kappa_i\frac{t_i+A_i}{2}$. We can increase its $\operatorname{E}(\overline{u}_i)$ unilaterally by making its sensing time $\frac{t_i}{2}$. 2) If $i \in\mathcal{S}_2$, $\operatorname{E}(\overline{u}_i)=R-\kappa_it_i$. We can increase its $\operatorname{E}(\overline{u}_i)$ unilaterally by making its sensing time $\frac{t_i+A_i}{2}$. Thus, there is no THP s.t. $|\mathcal{S}|=1$ and $|\mathcal{S}|>1$ for every non-trivial THP.
+\end{IEEEproof}
+
+%Base on Definition \ref{def:best_response}, 
+In order to find the non-trivial THP, based on Theorem \ref{thr:thp}, we convert the equilibrium problem to the calculation of each user\rq{}s expected best response strategy based on other users' strategies. Theorem \ref{thr:best_response} shows the detailed calculation methods.
+
+\begin{theorem}
+\label{thr:best_response}
+For the crowdsourcing model, if $|\mathcal{S}|\geq 2$, the expected best response strategy can be calculated as (\ref{eqn:best_response}).
+\begin{equation}
+\label{eqn:best_response}
+\beta_i(t_{-i})=\left\{
+\begin{array}{l l}
+\alpha_i & \quad \text{if $\alpha_i> A_i$,}\\
+2\alpha_i-A_i & \quad \text{if $\frac{A_i}{2}<\alpha_i\leq A_i$,}\\
+0 & \quad \text{otherwise.}
+\end{array} \right.
+\end{equation}
+Here $\alpha_i$ is specified as following:
+\begin{equation}
+\label{eqn:alpha}
+\begin{aligned}
+\alpha_i=\sqrt{\frac{R(\sum_{j\in \mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}+\sum_{j\in \mathcal{S}_2\setminus\{i\}}t_j)}{\kappa_i}}\\-\sum_{j\in \mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}-\sum_{j\in \mathcal{S}_2\setminus\{i\}}t_j.
+\end{aligned}
+\end{equation}
+\end{theorem}
+
+\begin{IEEEproof}
+To study the maximum expected utility, we compute the partial derivatives of $\operatorname{E}(\overline{u}_i)$ in (\ref{eqn:expected_user_utility}) with respect to $t_i$:
+\begin{equation}
+\label{eqn:d_u}
+\frac{\partial \operatorname{E}(\overline{u}_i)}{\partial t_i}=\left\{
+\begin{array}{l l}
+\frac{2\Omega-(t_i+A_i)}{4\Omega^2}R-\frac{\kappa_i}{2} & \quad \text{$0 < t_i \leq A_i$,}\\
+\frac{\Omega-t_i}{\Omega^2}R-\kappa_i & \quad \text{$t_i > A_i$.}
+\end{array}\right.
+\end{equation}
+\begin{equation}
+\label{eqn:d2_u}
+\frac{\partial^2 \operatorname{E}(\overline{u}_i)}{\partial t_i^2}=\left\{
+\begin{array}{l l}
+-\frac{2\Omega-(t_i+A_i)}{4\Omega^3}<0 & \quad \text{$0 < t_i \leq A_i$,}\\
+-\frac{2(\Omega-t_i)}{\Omega^3}<0 & \quad \text{$t_i > A_i$.}
+\end{array}\right.
+\end{equation}
+Since $|\mathcal{S}|>1$, $\sum_{j\in \mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}+\sum_{j\in \mathcal{S}_2\setminus\{i\}}t_j>0$ for any user $i$. Thus the second order derivative of $\operatorname{E}(\overline{u}_i)$ is negative for all $t_i>0$, implying the expected utility $\operatorname{E}(\overline{u}_i)$ is a \emph{strictly concave function} over $t_i \in (0,+\infty)$. Since $\operatorname{E}(\overline{u}_i)$ has an upper bound $R$ and declines to $-\infty$ as $t_i$ goes to $+\infty$ ($\kappa_i>0$), there exists a unique $t_i$ that maximizes $\operatorname{E}(\overline{u}_i)$. To locate the maximum point of $\operatorname{E}(\overline{u}_i)$, let the derivatives of $\operatorname{E}(\overline{u}_i)$ be zero, and one has
+\begin{equation}
+\label{eqn:d_zero_1}
+\frac{\Omega-\frac{t_i+A_i}{2}}{2\Omega^2}R-\frac{\kappa_i}{2}=0,0 < t_i \leq A_i;
+\end{equation}
+\begin{equation}
+\label{eqn:d_zero_2}
+\frac{\Omega-t_i}{\Omega^2}R-\kappa_i=0, t_i > A_i.
+\end{equation}
+By solving (\ref{eqn:d_zero_1}) and (\ref{eqn:d_zero_2}), we have maximum points of $\operatorname{E}(\overline{u}_i)$ for the following cases:
+\begin{itemize}
+\item {\bf Case 1}: (\ref{eqn:d_zero_1}) has root $t_i\in (0,A_i]$. Since $i\in\mathcal{S}_1$ and $i\notin\mathcal{S}_2$, $\mathcal{S}_2\setminus\{i\}=\mathcal{S}_2$. The expected best response is at the maximum point:
+\begin{equation}
+\label{eqn:d_zero_sol_1}
+\begin{aligned}
+\beta_i(t_{-i})=2(\sqrt{\frac{\sum_{j\in\mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}+\sum_{j\in\mathcal{S}_2\setminus\{i\}}t_j}{\kappa_i}R}\\
+-\sum_{j\in\mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}-\sum_{j\in\mathcal{S}_2\setminus\{i\}}t_j)-A_i
+\end{aligned}
+\end{equation}
+
+\item {\bf Case 2}: (\ref{eqn:d_zero_2}) has root $t_i\in (A_i,+\infty)$. Since $i\in\mathcal{S}_2$ and $i\notin\mathcal{S}_1$, $\mathcal{S}_1\setminus\{i\}=\mathcal{S}_1$. The best response is at the maximum point:
+\begin{equation}
+\label{eqn:d_zero_sol_2}
+\begin{aligned}
+\beta_i(t_{-i})=\sqrt{\frac{\sum_{j\in\mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}+\sum_{j\in\mathcal{S}_2\setminus\{i\}}t_j}{\kappa_i}R}\\
+-\sum_{j\in\mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}-\sum_{j\in\mathcal{S}_2\setminus\{i\}}t_j
+\end{aligned}
+\end{equation}
+
+\item {\bf Case 3}: Neither (\ref{eqn:d_zero_1}) nor (\ref{eqn:d_zero_2}) has root. As $\operatorname{E}(\overline{u}_i)$ is concave over $t_i\in(0,+\infty)$, $\operatorname{E}(\overline{u}_i)$ is negative for any $t_i>0$. Thus the expected best response is $\beta_i(t_{-i})=0$ to avoid deficit.
+\end{itemize}
+Combining all the above cases, (\ref{eqn:best_response}) is the expected best response strategy given $t_{-i}$.
+\end{IEEEproof}
+
+%The following lemmas show the basic properties of THP profiles of the game.
+
+Theorem \ref{thm:1} shows how to determine a THP profile without knowledge of each user's strategy. (\ref{eqn:time_sum}) gives the sum of the user strategies under THP. (\ref{eqn:te_exp}) gives the user strategies only with costs $\kappa$, reward $R$ and perturbations $A$ as parameters.
+\begin{theorem}
+\label{thm:1}
+Let $t_i^{e}$ be non-trivial THP ($|\mathcal{S}|\geq 2$) of the perturbed game. Then the following equations hold:
+\begin{equation}
+\label{eqn:time_sum}
+\Omega=\sum_{j\in \mathcal{S}_1}\frac{t_j^{e}+A_j}{2}+\sum_{j\in \mathcal{S}_2}t_j^{e}=\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}R,
+\end{equation}
+\begin{equation}
+\label{eqn:te_exp}
+t_i^{e}=\left\{
+\begin{array}{l l}
+\frac{2(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)-A_i & \quad \text{$i\in\mathcal{S}_1$,}\\
+\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i) & \quad \text{$i\in\mathcal{S}_2$,}\\
+0 & \quad \text{$i\notin\mathcal{S}$.}
+\end{array}\right.
+\end{equation}
+And $\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)>\frac{A_i}{2}$ for any user $i\in\mathcal{S}$, and $(\sqrt{\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j\kappa_i}}-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j})R\leq\frac{A_i}{2}$ for any user $i \in\mathcal{U}\setminus\mathcal{S}$.
+\end{theorem}
+
+\begin{IEEEproof}
+We first show (\ref{eqn:time_sum}). Since the strategy profile is THP, every user in $\mathcal{S}$ achieves its maximum expected utility, which is its \emph{expected best response}. Hence (\ref{eqn:d_zero_1}) holds for any user $i\in\mathcal{S}_1$ and (\ref{eqn:d_zero_2}) holds for any user $i\in\mathcal{S}_2$. We sum up (\ref{eqn:d_zero_1}) and (\ref{eqn:d_zero_2}) over the users in $\mathcal{S}$, with $t_i$ replaced by $t_i^{e}$, and then we have
+\begin{equation}
+\frac{(|\mathcal{S}_1|+|\mathcal{S}_2|-1)R}{\sum_{j\in\mathcal{S}_1}\kappa_j+\sum_{j\in\mathcal{S}_2}\kappa_j}=\sum_{j\in\mathcal{S}_1}\frac{t_j^{e}+A_i}{2}+\sum_{j\in\mathcal{S}_2}t_j^{e}
+\end{equation}
+It gives (\ref{eqn:time_sum}).\par{}
+We next show (\ref{eqn:te_exp}). We substitute (\ref{eqn:time_sum}) into (\ref{eqn:d_zero_1}) and (\ref{eqn:d_zero_2}) respectively, and use $t_i^{e}$ instead of $t_i$. We solve $t_i^{e}$:
+\begin{equation}
+\label{eqn:proof}
+t_i^{e}=\left\{
+\begin{array}{l l}
+\frac{2(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)-A_i & \quad \text{$0<t_i^{e}\leq A_i$,}\\
+\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i) & \quad \text{$t_i^{e}>A_i$}
+\end{array}\right.
+\end{equation}
+for any user $i\in\mathcal{S}$. This gives (\ref{eqn:te_exp}).\par{}
+Last we show the remaining part of the theorem. To ensure (\ref{eqn:proof}) has roots for user $i\in\mathcal{S}$, we have $\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)>\frac{A_i}{2}$. For those users not in $\mathcal{S}$, we have $\alpha_i \leq \frac{A_i}{2}$ according to Theorem \ref{thr:best_response}. Thus,
+\begin{eqnarray}
+\begin{aligned}
+\alpha_i &= \sqrt{\frac{R(\sum_{j\in \mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}+\sum_{j\in \mathcal{S}_2\setminus\{i\}}t_j)}{\kappa_i}}\\&\quad\quad-\sum_{j\in \mathcal{S}_1\setminus\{i\}}\frac{t_j+A_j}{2}-\sum_{j\in \mathcal{S}_2\setminus\{i\}}t_j\\
+&= \sqrt{\frac{R(\sum_{j\in \mathcal{S}_1}\frac{t_j+A_j}{2}+\sum_{j\in \mathcal{S}_2}t_j)}{\kappa_i}}\\&\quad\quad-\sum_{j\in \mathcal{S}_1}\frac{t_j+A_j}{2}-\sum_{j\in \mathcal{S}_2}t_j\\
+&= (\sqrt{\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j\kappa_i}}-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j})R \leq\frac{A_i}{2}.
+\end{aligned}
+\end{eqnarray}
+\end{IEEEproof}
+
+
+The results in Theorem \ref{thm:1} cannot immediately derive a mechanism that solves the incentive issues for the users, because there may be multiple non-trivial THPs in the system, due to the existence of uncertainty. Table \ref{tab:example} shows such an example. The cost unit and perturbation amplitude of each user are given in the first two rows. $t_{(1)}^{e}$ and $t_{(2)}^{e}$ are two possible strategy profiles for the 5 users, and both $t_{(1)}^{e}$ and $t_{(2)}^{e}$ can achieve THP. Since $t_{(1)}^{e}$ is different from $t_{(2)}^{e}$, it indicates the perturbed game can have multiple THP strategy profiles. {\color{black}However, $t_{(1)}^{e}$ and $t_{(2)}^{e}$ have different performance parameters, i.e., total expected sensing time $\Omega$ and platform utilities $\overline{u}_0$. Based on Table \ref{tab:example}, since $t_{(1)}^{e}$ has better parameters than $t_{(2)}^{e}$, we prefer $t_{(1)}^{e}$ rather than $t_{(2)}^{e}$.} That means in order to optimize the utilities, we need to choose the equilibrium that can optimize the system-wide total sensing time as well as the platform utility. %platform utility maximization, the THP with larger $\overline{u}_0$ is preferred.
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{c | c c c c c | c | c}
+Users	&	1	&	2	&	3	&	4	&	5 & $\Omega$ & $\overline{u}_0$\\
+\hline
+$\kappa$	&	5.0	&	7.0	&	7.6	&	7.7	&	8.3 & &\\
+$A$	&	0.8 & 9.5 & 3.5 & 7.0 & 3.7 & &\\
+$t_{(1)}^{e}$ & 4.99 & 0 & 1.72 & 0 & 0.24 & 9.57 & 17.91\\
+$t_{(2)}^{e}$ & 4.79 & 0 & 2.80 & 0 & 0 & 7.94 & 9.53\\
+\hline
+\end{tabular}
+\caption{A case that has multiple THPs. $R=100$. $\lambda=50$.}
+\label{tab:example}
+\end{table}
+
+\subsection{Determining the Optimized THP}
+
+
+We propose Algorithm \ref{alg:THP} to find the THP that can achieve the maximum sum of expected sensing time $\Omega$. 
+{\color{black}
+In fact, if we can achieve the maximized $\Omega$, we can also achieve the maximized platform utility $\overline{u}_0$. This is because based on (\ref{eqn:omega}) and (\ref{eqn:platform_utility}), we have $\overline{u}_0=\lambda \log{(1+\Omega)}-R$ and it is easy to see $\overline{u}_0$ strictly increases as $\Omega$ increases. 
+}
+The main idea of this algorithm is to check each THP and find out the optimized solution. Each THP has a subset of users whose strategies (sensing time) are positive. Such user subset is called the \emph{support set} of the equilibrium. Within the outer loop starting at line 9, Algorithm \ref{alg:THP} keeps checking the members of the support set in order to find THPs. If our algorithm fails to find such a correct support set, the perturbed game actually does not have any THP. The results from Lemma \ref{lem:2} and \ref{lem:3} can help eliminate numerous incorrect possibilities on the support set in advance. In Section \ref{sec:alg_discuss}, we will show that provided the proper reward $R$, the complexity of Algorithm \ref{alg:THP} can be $O(n\log n)$ with the number of users. Solid theoretic analysis verifies that Algorithm \ref{alg:THP} can efficiently find the THP to optimize the total sensing time given the reward $R$.
+
+\begin{algorithm}[!t]
+\begin{small}
+\caption{\emph{Computation of the THP}}
+\label{alg:THP}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\begin{algorithmic}[1]
+\Require{$R$: reward of the platform; $\kappa$: cost units of all users; $A$: maximum perturbation amplitudes of all users.}
+\Ensure{$t^{e}$: the strategy profile, if any.}
+\State $M \leftarrow 0$, $k=0$;
+\If {$R<\frac{\min_{j\in\mathcal{U}}A_j\kappa_j}{2}$}
+	\Return $t^{e}=(0,0,\cdots,0)$.
+\EndIf
+\State Sort users based on their cost units: $\kappa_1 \leq \kappa_2 \leq \cdots \leq \kappa_n$;
+\State $\mathcal{C}_k \leftarrow \{1,2\}$, $i \leftarrow 3$;
+\While {$i \leq n$ and $\kappa_i < \frac{\kappa_i+\sum_{j\in\mathcal{S}}\kappa_j}{|\mathcal{C}_k|}$}
+	\State $\mathcal{C}_k \leftarrow \mathcal{C}_k \cup \{i\}$, $i \leftarrow i+1$;
+\EndWhile
+\While {true}
+\State Sort users in $\mathcal{C}_k$ based on their cost units in ascending order: $\kappa_{s_1} \leq \kappa_{s_2} \leq \cdots \leq \kappa_{s_{|\mathcal{C}_k|}}$;
+\State $\mathcal{C}_{k+1}\leftarrow \mathcal{C}_k$ and then $k\gets k+1$;
+\If {$|\mathcal{C}_k|=0$}
+	\State Break while loop.
+\EndIf
+\If {$|\mathcal{C}_k|=1$}
+	\State $i \leftarrow s_1+1$, $\mathcal{C}_k \leftarrow \{i\}$;
+	\While {$i \leq n$ and $\kappa_i < \frac{\kappa_i+\sum_{j\in\mathcal{C}_k}\kappa_j}{|\mathcal{C}_k|}$}
+		\State $\mathcal{C}_k \leftarrow \mathcal{C}_k\cup \{i\}$, $i\leftarrow i+1$;
+	\EndWhile
+\EndIf
+\If {$|\mathcal{C}_k|>1$}
+	\If {$\forall i\in\mathcal{C}_k$, $\frac{(|\mathcal{C}_k|-1)R}{\sum_{j\in\mathcal{C}_k}\kappa_j}(1-\frac{(|\mathcal{C}_k|-1)\kappa_i}{\sum_{j\in\mathcal{C}_k}\kappa_j})>\frac{A_i}{2}$ and $\forall i\in\mathcal{U}\setminus\mathcal{C}_k$, $(\sqrt{\frac{|\mathcal{C}_k|-1}{\sum_{j\in\mathcal{C}_k}\kappa_j\kappa_i}}-\frac{|\mathcal{C}_k|-1}{\sum_{j\in\mathcal{C}_k}\kappa_j})R\leq\frac{A_i}{2}$}
+		\If {$M<\frac{|\mathcal{C}_k|-1}{\sum_{j\in\mathcal{C}_k}\kappa_j}$}
+			\State $M \leftarrow \frac{|\mathcal{C}_k|-1}{\sum_{j\in\mathcal{C}_k}\kappa_j}$;
+			\State $t^e$ = \textsf{CalculateStrategy}($\mathcal{C}_k$, $R$, $\kappa$, $A$);
+			\If {$k=1$}
+				\State {\bf return} $t^{e}=(t_1^{e},t_2^{e},\cdots,t_n^{e})$.
+			\EndIf
+		\EndIf
+	\EndIf
+	\State $i \leftarrow \max_{j\in\mathcal{C}_k}j+1$, $\mathcal{C}_k\leftarrow\mathcal{C}_k\setminus\{\max_{j\in\mathcal{C}_k}j\}$;
+	\While {$i\leq n$ and $\kappa_i<\frac{\kappa_i+\sum_{j\in\mathcal{C}_k}\kappa_j}{|\mathcal{C}_k|}$}
+		\State $\mathcal{C}_k\leftarrow\mathcal{C}_k\cup\{i\}$, $i \leftarrow i+1$;
+	\EndWhile
+\EndIf
+\EndWhile
+%\algstore{btbreak}
+%\end{algorithmic}
+%\end{algorithm}
+%\addtocounter{algorithm}{-1}
+%\begin{algorithm}[htbp]
+%\caption{\emph{Computation of the THP (Part 2)}}
+%\label{alg:te2}
+%\begin{algorithmic}[1]
+%\algrestore{btbreak}
+\If {$M=0$}
+	\State {\bf return} No THP.
+\Else
+	\State {\bf return} $t^{e}=(t_1^{e},t_2^{e},\cdots,t_n^{e})$.
+\EndIf
+
+\end{algorithmic}
+\end{small}
+\end{algorithm}
+
+
+\begin{algorithm}[t]
+\begin{small}
+\caption{\textsf{CalculateStrategy}}
+\label{alg:calc_strategy}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\begin{algorithmic}[1]
+\Require{$\mathcal{C}_k$: support set of the strategy profile; $R$: reward of the platform; $\kappa$: cost units of all users; $A$: maximum perturbation amplitudes of all users.}
+\Ensure{$t^{e}$: the strategy profile based on $\mathcal{C}_k$.}
+\For {$i\in\mathcal{U}$}
+	\If {$i\in\mathcal{C}_k$}
+		\State $t_i^{e} \leftarrow \frac{(|\mathcal{C}_k|-1)R}{\sum_{j\in\mathcal{C}_k}\kappa_j}(1-\frac{(|\mathcal{C}_k|-1)\kappa_i}{\sum_{j\in\mathcal{C}_k}\kappa_j})$;
+		\If {$t_i^{e} < A_i$}
+			\State $t_i^{e} \leftarrow 2t_i^{e}-A_i$;
+		\EndIf
+		\Else
+		\State $t_i^{e} \leftarrow 0$;
+	\EndIf
+\EndFor
+\State \bf{return} $t^e=(t_1^{e},t_2^{e},\cdots,t_n^{e})$.
+\end{algorithmic}
+\end{small}
+\end{algorithm}
+
+
+Theorem \ref{thr:THP} shows the correctness of Algorithm \ref{alg:THP}.
+
+
+\begin{theorem}
+\label{thr:THP}
+We assume there exists a THP of the game. Then we have:\par{}
+1) The strategy profile $t^{e}=(t_1^{e},t_2^{e},\cdots,t_n^{e})$ computed by Algorithm \ref{alg:THP} is a THP of the game.\par{}
+2) The strategy profile $t^{e}$ computed by Algorithm \ref{alg:THP} maximizes system-wide total sensing time $\Omega$.
+\end{theorem}
+
+In order to show Theorem \ref{thr:THP}, we give the definition of \emph{support set} of THP, Lemma \ref{lem:2} and Lemma \ref{lem:3} as follows. 
+
+\begin{definition}
+\label{def:support_set}
+{\bf (Support Set)} A subset $\mathcal{S}\subseteq\mathcal{U}$ satisfies $\forall i\in\mathcal{S}$, $t_i^{e}>0$, and $\forall i\notin\mathcal{S}$, $t_i^{e}=0$. Then $\mathcal{S}$ is the support set of THP $t^{e}$.
+\end{definition}
+
+%The support set is the main characteristic of a THP. If the support set is given, we can calculate the corresponding THP instantly. Thus, to find support sets is essential for our work in Algorithm 1.
+
+%Lemma \ref{lem:2} shows a necessary condition of support set of THP. We can use this condition to discard some subsets of $\mathcal{U}$ when searching for support sets of THP.
+\begin{lemma}
+\label{lem:2}
+Let $\mathcal{S}$ be a support set of THP and $h=|\mathcal{S}|$. Sort the users in $\mathcal{S}$ based on their cost units: $\kappa_1 \leq \kappa_2 \leq \cdots \leq \kappa_h$. Then we have $\kappa_q<\frac{\sum_{j=1}^q\kappa_j}{q-1}$ for any $q$ s.t. $2\leq q\leq h$.
+\end{lemma}
+\begin{IEEEproof}
+According to Lemma \ref{lem:0}, $h\geq 1$. According to Theorem \ref{thm:1}, to ensure $t_i^{e}>0$ for any $i\in\mathcal{S}$ under THP, $1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i>0$ holds. Thus, $\kappa_h<\frac{\sum_{j=1}^h\kappa_j}{h-1}$. If $h=2$, the inequality holds for any $i$ s.t. $2\leq i\leq h$ directly. Meanwhile, if $h>2$, $\kappa_h=\frac{\kappa_h+(h-2)\kappa_h}{h-1}>\frac{\kappa_h+(h-2)\kappa_{h-1}}{h-1}$. Hence $\frac{\kappa_h+(h-2)\kappa_{h-1}}{h-1}<\frac{\sum_{j=1}^h\kappa_j}{h-1}$. Thus $\kappa_{h-1}<\frac{\sum_{j=1}^{h-1}\kappa_j}{h-2}$. Similarly, $\kappa_{q}<\frac{\sum_{j=1}^q\kappa_j}{q-1}$ holds for any $q$ s.t. $2\leq q\leq h$.
+\end{IEEEproof}
+
+\begin{lemma}
+\label{lem:3}
+Let $\mathcal{C}_1,\mathcal{C}_2,\cdots,\mathcal{C}_k$ be the subset sequence Algorithm \ref{alg:THP} will check through.\par{}
+1) $|\mathcal{C}_1|\geq 2$;\par{}
+2) For any subset $\mathcal{S}'\subseteq\mathcal{U}$ s.t.$|\mathcal{S}'|\geq 2$, $\frac{|\mathcal{S}'|-1}{\sum_{j\in\mathcal{S}'}\kappa_j}\leq\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j}$;\par{}
+3) For any subset $\mathcal{C}_k$ in the sequence, for any subset $\mathcal{S}=\{i|i\notin\mathcal{C}_k,\kappa_i\geq\max_{j\in\mathcal{C}_k}\kappa_j\}$, $\mathcal{C}_k\cup\mathcal{S}$ cannot be a support set of any THP.
+\end{lemma}
+
+\begin{IEEEproof}
+1) Before entering the while-loop at line 6, there are at least two users in $\mathcal{C}_1$. Hence $|\mathcal{C}_1|\geq 2$.\par{}
+2) Sort the users $\mathcal{U}$ according to their cost units: $\kappa_1\leq\kappa_2\leq\cdots\leq\kappa_n$. For any set $\mathcal{S}'$ s.t. $|\mathcal{S}'|\geq 2$, let $q=|\mathcal{S}'|$ and we have $\frac{\sum_{j\in\mathcal{S}'}\kappa_j}{q-1}\geq\frac{\sum_{j=1}^q\kappa_j}{q-1}$. We next show $\frac{\sum_{j\in\mathcal{C}_1}\kappa_j}{|\mathcal{C}_1|-1}\leq\frac{\sum_{j=1}^q\kappa_j}{q-1}$ for any $q$ s.t. $2\leq q\leq n$. Let $n_0=|\mathcal{C}_1|$. We have three cases:
+\begin{itemize}
+\item $q=n_0$. Since all the users in $\mathcal{C}_1$ have the least cost units, $\forall i\in\mathcal{U}\setminus\mathcal{C}_1$, $\kappa_i\geq\max_{j\in\mathcal{C}_1}\kappa_j$. Then it is obvious $i\in\mathcal{C}_1$ for any $i\leq q$. Hence $\frac{\sum_{j\in\mathcal{C}_1}\kappa_j}{|\mathcal{C}_1|-1}=\frac{\sum_{j=1}^q\kappa_j}{q-1}$. The inequality holds in nature.
+\item $q<n_0$. $\kappa_{q+1}<\frac{\kappa_{q+1}+\sum_{j=1}^{q}\kappa_j}{q}$. Hence $\kappa_{q+1}<\frac{\sum_{j=1}^{q}\kappa_j}{q-1}$ and $\frac{\kappa_{q+1}+\sum_{j=1}^q\kappa_j}{q}<\frac{\frac{\sum_{j=1}^{q}\kappa_j}{q-1}+\sum_{j=1}^q\kappa_j}{q}=\frac{\sum_{j=1}^{q}\kappa_j}{q-1}$. Similarly, we have $\frac{\sum_{j=1}^{q}\kappa_j}{q-1}>\frac{\sum_{j=1}^{q+1}\kappa_j}{q}>\cdots>\frac{\sum_{j=1}^{n_0}\kappa_j}{n_0-1}$.
+\item $q>n_0$. $\kappa_{q}\geq\frac{\kappa_{q}+\sum_{j=1}^{n_0}\kappa_j}{n_0}$ as $q \notin \mathcal{C}_1$. Hence $\kappa_{q}\geq\frac{\sum_{j=1}^{n_0}\kappa_j}{n_0-1}$. Similarly, we have $\kappa_{i}\geq\frac{\sum_{j=1}^{n_0}\kappa_j}{n_0-1}$ holds for any $i$ s.t. $n_0<i\leq q$. Thus, $\frac{\sum_{j=1}^{q}\kappa_j}{q-1}\geq\frac{(q-n_0)\frac{\sum_{j=1}^{n_0}\kappa_j}{n_0-1}+\sum_{j=1}^{n_0}\kappa_j}{q-1}=\frac{\sum_{j=1}^{n_0}\kappa_j}{n_0-1}$.
+\end{itemize}
+Thus, we have $\frac{\sum_{j\in\mathcal{C}_1}\kappa_j}{|\mathcal{C}_1|-1}\leq\frac{\sum_{j=1}^{q}\kappa_j}{q-1}\leq\frac{\sum_{j\in\mathcal{S}'}\kappa_j}{|\mathcal{S}'|-1}$. Hence $\frac{|\mathcal{S}'|-1}{\sum_{j\in\mathcal{S}'}\kappa_j}\leq\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j}$.\par{}
+3) Similarly sort the cost units: $\kappa_1\leq\kappa_2\leq\cdots\leq\kappa_n$. Let $q=\arg\min_{j\in\mathcal{S}}\kappa_j$, and thus $q\geq \arg\max_{j\in\mathcal{C}_k}\kappa_j$ as defined by $\mathcal{S}$. We assume $\mathcal{C}_k\cup\mathcal{S}$ can be a support set of a THP, then according to Lemma \ref{lem:2}, $\kappa_q < \frac{\kappa_q+\sum_{j\in\mathcal{C}_k}\kappa_j}{|\mathcal{C}_k|}$. Then $q$ should be in $\mathcal{C}_k$ based on the algorithm. That contradicts $\mathcal{S}\cap\mathcal{C}_k=\emptyset$. Thus, $\mathcal{C}_k\cup\mathcal{S}$ cannot be a support set of a THP.
+\end{IEEEproof}
+
+\noindent \textbf{Proof of Theorem \ref{thr:THP}}
+\begin{IEEEproof}
+1) We first show the result of Algorithm \ref{alg:THP} is THP, if any. To escape from the until-loop, there are three possible cases: (1) there is no THP; (2) $\mathcal{C}_1$ satisfies $\forall i\in\mathcal{C}_1$, $\frac{(|\mathcal{C}_1|-1)R}{\sum_{j\in\mathcal{C}_1}\kappa_j}(1-\frac{(|\mathcal{C}_1|-1)\kappa_i}{\sum_{j\in\mathcal{C}_1}\kappa_j})>\frac{A_i}{2}$ and $\forall i\in\mathcal{U}\setminus\mathcal{C}_1$, $(\sqrt{\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j\kappa_i}}-\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j})R\leq\frac{A_i}{2}$; (3) $|\mathcal{C}_k|=0$. For case (1), there will be no THP for the game according to Lemma \ref{lem:3}'s 3). For case (2), $\mathcal{C}_1$ is a support set of THP based on Theorem \ref{thm:1}. Thus, we have a THP $t^{e}$ based on $\mathcal{C}_1$ according to Theorem \ref{thr:best_response} and Theorem \ref{thm:1}. For case (3), the algorithm has considered all the possible support sets of THP. The subsets not in the sequence cannot be support sets of THP based on Lemma \ref{lem:3}'s 3). Thus $t^{e}$ is one THP of the game.
+
+2) We next show Algorithm \ref{alg:THP} maximizes $\Omega=\sum_{i\in\mathcal{U}}\operatorname{E}(t_i^{e}+\varepsilon_i)$. We consider the three cases in 1). For case (1), there is no THP. For case (2), according to Lemma \ref{lem:3}'s 2), $\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j}$ achieves the maximum value among all the subsets of $\mathcal{U}$. Thus $t^{e}$ maximizes $\sum_{i\in\mathcal{U}}\operatorname{E}(t_i^{e}+\varepsilon_i)$. For case (3), $M$ is the maximized $\sum_{i\in\mathcal{U}}\operatorname{E}(t_i^{e}+\varepsilon_i)$ and $t^{e}$ is the corresponding THP. Thus Algorithm \ref{alg:THP} maximizes $\Omega$.
+\end{IEEEproof}
+
+\subsection{Discussions on Algorithm \ref{alg:THP}}
+\label{sec:alg_discuss}
+{\color{black}
+\noindent \textbf{\underline{Distributedness}} Algorithm \ref{alg:THP} is highly distributed. That is, every user can compute Algorithm \ref{alg:THP} independently. There is no required central coordination. However, since there are multiple THPs, the users may have inconsistency when choosing THP. To address this issue, instead of centralized algorithms, we use indirect control, for example, a proper reward to let the users agree on the optimized THP. This practice does a favor for the platform and makes the system-wide equilibrium unique, and Algorithm \ref{alg:THP} can be computed efficiently. If any of the users unilaterally choose another sub-optimized THP, they will take their own risk of utility loss.
+}
+
+\noindent \textbf{\underline{Complexity}} If the game only has the trivial THP, Algorithm \ref{alg:THP} exits at line 2 and it takes $O(n)$ time to locate the minimized $A_i\kappa_i$. 
+If $\mathcal{C}_1$ is the support set of THP, Algorithm \ref{alg:THP} returns at line 27. The time complexity is $O(n\log n)$ due to the sorting at line 10. In Section \ref{sec:platform_reward}, we will show that a proper reward $R$ can guarantee such scenario.
+
+\medskip
+
+\noindent \textbf{\underline{R and non-trial THP existence}} Since each user's utility function is not continuous at the point $t_i=0$, our perturbed game is a discontinuous game. Thus our game does not have THP for some certain $R$ according to \cite{carbonell:discontinuous}. Algorithm \ref{alg:THP} will return no THP if we cannot find the support set of THP. If there is no THP, the platform can increase the reward $R$ to a certain value in order to satisfy the non-trivial THP conditions. This is because for any such game, there exists a positive $R_0$ that for any $R>R_0$, there exists a non-trivial THP profile. %That is Theorem \ref{thm:te_exists}.
+
+\begin{theorem}
+\label{thm:te_exists}
+For any game with more than 2 users, there exists a positive reward $R_0$ that for any reward $R>R_0$, there exists a non-trivial THP strategy profile $t^{e}$.
+\end{theorem}
+\begin{IEEEproof}
+In Algorithm \ref{alg:THP}, in order to return $\mathcal{S}=\mathcal{C}_1$ at $k=1$, we have
+\begin{equation}
+\label{eqn:R}
+\frac{(|\mathcal{C}_1|-1)R}{\sum_{j\in\mathcal{C}_1}\kappa_j}(1-\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j})>\frac{A_i}{2}
+\end{equation}
+for any user $i\in\mathcal{C}_1$. Let $R_0=\max_{i\in\mathcal{C}_1}\frac{A_i\sum_{j\in\mathcal{C}_1}\kappa_j}{2(|\mathcal{C}_1|-1)}/(1-\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j})$. Thus, for any reward $R>R_0$, we have (\ref{eqn:R}) holds for any user $i\in\mathcal{C}_1$. For those users not in $\mathcal{C}_1$, since $\kappa_i\geq \frac{\kappa_i+\sum_{j\in\mathcal{C}_1}\kappa_j}{|\mathcal{C}_1|}$ for any user $i\in\mathcal{U}\setminus\mathcal{C}_1$, $\kappa_i\geq \frac{\sum_{j\in\mathcal{C}_1}\kappa_j}{|\mathcal{C}_1|-1}$. According to Theorem \ref{thr:best_response}, the best response of user $i$ is $\sqrt{\frac{R(\sum_{j\in \mathcal{C}_1}\operatorname{E}(t_j+\varepsilon_j))}{\kappa_i}}-\sum_{j\in \mathcal{C}_1}\operatorname{E}(t_j+\varepsilon_j)=(\sqrt{\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j\kappa_i}}-\frac{|\mathcal{C}_1|-1}{\sum_{j\in\mathcal{C}_1}\kappa_j})R \leq 0 < \frac{A_i}{2}$. Hence $\mathcal{C}_1$ is the support set of the THP strategy profile $t^{e}$.
+\end{IEEEproof}
+
+
+Sufficiently large reward can guarantee a non-trivial THP. However, too much reward will cause deficit to the platform. In fact, the platform can choose a proper $R$ before initiating the sensing work to ensure there exists at least one THP profile. We will elaborate it later.
+
+\section{Maximizing Platform Utility For the Crowdsourcing Game with uncertainty Perturbation}
+\label{sec:platform_reward}
+{\color{black}The previous sections have provided the technical details to derive the user strategy profile for the perturbed game. We now design the incentive mechanism from the aspect of platform. Our objective is to maximize the platform utility. We have Theorem \ref{thm:upper_R} to show the existence and uniqueness of the reward $R$ that optimizes the platform utility, and then we will propose the algorithm to calculate the value of the reward, followed by the analysis of its effectiveness.} %while the incentive mechanism has a good performance.
+
+\subsection{Optimizing the Platform Utility}
+To achieve the maximum platform utility $\overline{u}_0$, we need to choose the optimal $R$. To analyze the expected sensing time of each user, we have Lemma \ref{lem:expect}.
+\begin{lemma}
+\label{lem:expect}
+Let $t^{e}$ be THP. Then we have
+\begin{equation}
+\label{eqn:expect_te_exp}
+\operatorname{E}(t_i^{e}+\varepsilon_i)=\left\{
+\begin{array}{l l}
+\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i) & \quad \text{$i\in\mathcal{S}$,}\\
+0 & \quad \text{$i\notin\mathcal{S}$.}
+\end{array}\right.
+\end{equation}
+\end{lemma}
+\begin{IEEEproof}
+We have three cases:
+\begin{itemize}
+\item $t_i^{e}=0$. Then $\varepsilon_i=0$. Hence $\operatorname{E}(t_i^{e}+\varepsilon_i)=0$.
+\item $i\in\mathcal{S}_1$. Then $\operatorname{E}(t_i^{e}+\varepsilon_i)=\frac{t_i^{e}+A_i}{2}$. Since (\ref{eqn:te_exp}), $\operatorname{E}(t_i^{e}+\varepsilon_i)=\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)$ for any user $i\in\mathcal{S}_1\subseteq\mathcal{S}$.
+\item $i\in\mathcal{S}_2$. Then $\operatorname{E}(t_i^{e}+\varepsilon_i)=t_i^{e}$. Since (\ref{eqn:te_exp}), $\operatorname{E}(t_i^{e}+\varepsilon_i)=\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)$ for any user $i\in\mathcal{S}_2\subseteq\mathcal{S}$.
+\end{itemize}
+All the above cases give (\ref{eqn:expect_te_exp}).
+\end{IEEEproof}
+
+According to (\ref{eqn:platform_utility}) and Lemma \ref{lem:expect}, we have
+\begin{equation}
+%\overline{u}_0=\lambda \log{(1+\sum_{i\in\mathcal{S}}\log{(1+\Psi_iR)})}-R
+\overline{u}_0=\lambda \log{(1+\sum_{i\in\mathcal{S}}\Psi_iR)}-R
+\end{equation}
+where $\Psi_i=\frac{(|\mathcal{S}|-1)}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)$. 
+Theorem \ref{thm:upper_R} below shows the optimized reward for the benefits of the platform always exists if any THP exists.
+\begin{theorem}
+\label{thm:upper_R}
+For any THP profile, there exists a unique $R\geq 0$ maximizing the platform utility $\overline{u}_0$.
+\end{theorem}
+\begin{IEEEproof}
+We have two cases for trivial and non-trivial THPs:
+\begin{itemize}
+\item For trivial THP $t^{e}=(0,0,\cdots,0)$, $\mathcal{S}=\emptyset$, $\overline{u}_0=-R$. There exists the unique maximizer of $\overline{u}_0$: $R=0$.
+\item For non-trivial THP, the second order derivative of $\overline{u}_0$ is $\frac{\partial^2\overline{u}_0(R)}{\partial R^2}=-\lambda\frac{\sum_{i\in\mathcal{S}}\Psi_i}{(1+\sum_{i\in\mathcal{S}}\Psi_iR)^2}$. Thus we have $\frac{\partial^2\overline{u}_0(R)}{\partial R^2}<0$ holds, indicating $\overline{u}_0(R)$ is strictly concave over the interval $I$ s.t. $\forall R\in I$, $\frac{(|\mathcal{S}|-1)R}{\sum_{j\in\mathcal{S}}\kappa_j}(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)>\frac{A_i}{2}$ for any user $i\in\mathcal{S}$, and $(\sqrt{\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j\kappa_i}}-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j})R\leq\frac{A_i}{2}$ for any user $i \in\mathcal{U}\setminus\mathcal{S}$ (that is, $S$ is a support set of THP). Thus, solving the inequalities for every user $i$, given any subset $S$ s.t. $\max_{j\in\mathcal{S}}\kappa_j<\frac{\sum_{j\in\mathcal{S}}\kappa_j}{|\mathcal{S}|-1}$ (otherwise, $\mathcal{S}$ cannot be support set of THP according to Lemma \ref{lem:2}), the interval $I$ is
+\begin{eqnarray}
+\label{eqn:interval}
+\begin{aligned}
+&I=\left\{
+\begin{array}{l l}
+(\mathrm{inf}I,\mathrm{sup}I] & \quad \text{$\mathrm{inf}I<\mathrm{sup}I$,}\\
+\emptyset & \quad \text{otherwise,}
+\end{array}\right .\\
+&\mathrm{inf}I=\max_{i\in\mathcal{S}}\frac{A_i}{2}\frac{\sum_{j\in\mathcal{S}}\kappa_j}{(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)(|\mathcal{S}|-1)},\\
+&\mathrm{sup}I=\min_{i\in\mathcal{U}\setminus\mathcal{S}}V_i.
+\end{aligned}
+\end{eqnarray}
+Here $V_i = +\infty$ if $\sqrt{\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j\kappa_i}}\leq \frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}$. Otherwise, $V_i = \frac{A_i}{2}\frac{1}{(\sqrt{\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j\kappa_i}}-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j})}$.
+
+For a non-empty interval $I$, we calculate the maximum point using the derivative of $\overline{u}_0$.
+\begin{equation}
+\frac{\partial\overline{u}_0}{\partial R}=\lambda\frac{\sum_{i\in\mathcal{S}}\Psi_i}{1+\sum_{i\in\mathcal{S}}\Psi_iR}-1=0
+\end{equation}
+That is, $R_m=\lambda-\frac{1}{\sum_{i\in\mathcal{S}}\Psi_i}=\lambda-\frac{\sum_{i\in\mathcal{S}}\kappa_i}{|\mathcal{S}|-1}$ is maximum point. We have three cases:
+\begin{itemize}
+\item $R_m\in I$. The maximum point over $I$ is $R_m$.
+\item $R_m\leq \mathrm{inf}I$. We choose the maximum point $R_m=\mathrm{inf}I+\delta$ ($\delta$ is positive error allowed by the system), though there is no maxima over $I$ mathematically.
+\item $R_m > \mathrm{sup}I$. The maximum point over $I$ is $\mathrm{sup}I$.
+\end{itemize}
+For all the cases, the maximized value over $I$ is always $\overline{u}_0(R_m)|_I=\lambda\log{(\lambda\sum_{i\in\mathcal{S}}\Psi_i)}-\lambda+\frac{1}{\sum_{i\in\mathcal{S}}\Psi_i}$. Let $\mathbb{I}$ be the collection of all the non-empty intervals calculated by (\ref{eqn:interval}) for every subset $\mathcal{S}\subseteq\mathcal{U}$. Then the maximized value over $R\geq 0$ is $\max_{I\in\mathbb{I}}\overline{u}_0(R_m)|_I$ and $R^*$ is the corresponding $R_m$. If the calculated maximized value is negative, the platform can choose $R^*=0$ to avoid deficit.
+\end{itemize}
+Both the cases finish the proof.
+\end{IEEEproof}
+
+\subsection{Our Algorithm to Strategize the Reward}
+As the proof of Theorem \ref{thm:upper_R} states, the platform has to check every subset of the users in order to calculate its maximized utility. This procedure is time-consuming. Furthermore, it will require the users to search for the certain combination of support set, incurring copious computation. To circumvent such situation, we let the platform strategize $R$ to make $\overline{u}_0$ positive when $\mathcal{C}_1$ in Algorithm \ref{alg:THP} is the support set of THP. The existence of such $R$ can be guaranteed based on Theorem \ref{thm:te_exists}. We propose Algorithm \ref{alg:platform} to strategize the reward $R$. At line 10, our algorithm will choose $R_m=\max\{\underline{B}+\delta,\lambda-\frac{\sum_{j\in\mathcal{C}_1}\kappa_j}{|\mathcal{C}_1|-1}\}$ for $\mathcal{C}_1$, where $\underline{B}=\mathrm{inf}I$ in the proof of Theorem \ref{thm:upper_R}. Since $\kappa_i>\frac{\sum_{j\in\mathcal{S}}\kappa_j}{|\mathcal{S}|-1}$ for any user $i\in\mathcal{U}\setminus\mathcal{S}$, we have $\mathrm{sup}I=+\infty$. Thus, $R_m$ is the maximum point of the platform utility. To ensure the existence of non-trivial THP, the revenue coefficient $\lambda$ should be big enough to ensure the maximum $\overline{u}_0(R_m)$ is positive. Otherwise, the platform will gain nothing from the sensing task and it will strategize $R^*=0$ (line 16), leading to a trivial THP. For the non-trivial THP, $R_m$ is returned (line 18).
+
+\begin{algorithm}[!t]
+\begin{small}
+\caption{\emph{Strategizing Reward}}
+\label{alg:platform}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\begin{algorithmic}[1]
+\Require{$\kappa$: cost units of all users; $A$: maximum perturbation amplitudes of all users; $\delta$: absolute error allowed by the system.}
+\Ensure{$R^*$: the reward that can maximize $\overline{u}_0$.}
+\State Sort users based on their cost units: $\kappa_1 \leq \kappa_2 \leq \cdots \leq \kappa_n$;
+\State $\mathcal{S} \leftarrow \{1,2\}$, $i \leftarrow 3$;
+\While {$i \leq n$ and $\kappa_i < \frac{\kappa_i+\sum_{j\in\mathcal{S}}\kappa_j}{|\mathcal{S}|}$}
+	\State $\mathcal{S} \leftarrow \mathcal{S} \cup \{i\}$, $i \leftarrow i+1$;
+\EndWhile
+\State $\underline{B} \leftarrow 0$;
+\For {$i\in\mathcal{S}$}
+	\State $\underline{B} \leftarrow \max\{\underline{B}, \frac{A_i}{2}\frac{\sum_{j\in\mathcal{S}}\kappa_j}{(1-\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}\kappa_i)(|\mathcal{S}|-1)}\}$;
+\EndFor
+\If {$\lambda-\frac{\sum_{j\in\mathcal{S}}\kappa_j}{|\mathcal{S}|-1} > \underline{B}$}
+	\State $R_m \leftarrow \lambda-\frac{\sum_{j\in\mathcal{S}}\kappa_j}{|\mathcal{S}|-1}$;
+\Else
+	\State $R_m \leftarrow \underline{B}+\delta$;
+\EndIf
+\If {$\lambda\log{(1+\frac{|\mathcal{S}|-1}{\sum_{j\in\mathcal{S}}\kappa_j}R_m)-R_m}<0$}
+	\State {\bf return} $R^*=0$.
+\Else
+	\State {\bf return} $R^*=R_m$.
+\EndIf
+\end{algorithmic}
+\end{small}
+\end{algorithm}
+
+The output $R^*$ of Algorithm \ref{alg:platform} can maximize the platform utility $\overline{u}_0$. According to Lemma \ref{lem:3}'s 2), we have $k=1$ maximizes $\Phi = \frac{|\mathcal{C}_k|-1}{\sum_{j\in\mathcal{C}_k}\kappa_j}$. The maximized value of $\overline{u}_0$ is $\overline{u}_0(\Phi)=\lambda\log{(\lambda\Phi)}-\lambda+\frac{1}{\Phi}$. Since $R=\lambda-\frac{1}{\Phi}>0$, $\Phi>\frac{1}{\lambda}$. By observing the derivatives, we have $\overline{u}_0(\Phi)$ is strictly convex over $\Phi > 0$, and its minimum point is $\overline{u}_0(\frac{1}{\lambda})=0$. Thus, $\overline{u}_0(\Phi)$ is monotonically increasing over $\Phi > \frac{1}{\lambda}$. In Algorithm \ref{alg:platform}, the support set $\mathcal{S}=\mathcal{C}_1$ and $R^*$ maximizes $\Phi$. Hence $R^*$ maximizes $\overline{u}_0$.
+
+The complexity of Algorithm \ref{alg:platform} is $O(n\log n)$ since we sort the users at line 1 and the remaining procedures are at most $O(n)$. The output of Algorithm \ref{alg:platform} can be set as the reward of Algorithm \ref{alg:THP}, forming the entire incentive mechanism. Our incentive mechanism is very efficient since its complexity is $O(n\log n)$.
+
+\section{Incentive Mechanism for Sequential Crowdsourcing Games with Uncertainty Perturbation}
+\label{sec:estimation}
+{\color{black}In the previous sections, we assume the profile of the maximum uncertainty perturbations is known by each user and platform.} However, the maximum uncertainty perturbation of each user is often not determined or keeps changing along the games. Thus we have to dynamically adjust the distances $A$ through the sequential games. For a sequence of perturbed games $G^{(1)},G^{(2)},\cdots,G^{(N)}$, there are corresponding rewards of them: $R^{(1)},R^{(2)},\cdots,R^{(N)}$. We assume each game $G^{(k)}$ has a non-trivial THP strategy profile as Theorem \ref{thm:te_exists}, if $R^{(k)}$ is sufficiently large and the platform utility keeps positive. We have Algorithm \ref{alg:estimation} to estimate the maximum amplitude of uncertainty $A_i$ based on the previous games.
+
+\begin{algorithm}[!t]
+\begin{small}
+\caption{\emph{Maximum Uncertainty Distance Estimation}}
+\label{alg:estimation}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\begin{algorithmic}[1]
+\Require{$t_i$: strategy of user $i$; $G^{(k_1)},G^{(k_2)},\cdots,G^{(k_r)}$: the sequence of previous games; $t_i^{(k_s)}$: the strategy of user $i$ in the game $G^{(k_s)}$; $\overline{t}_i^{(k_s)}$: the actual sensing time of user $i$ in the game $G^{(k_s)}$.}
+\Ensure{$\hat{A}_i$: the estimated maximum uncertainty perturbation of user $i$.}
+\If {$r=0$}
+	\State {\bf return} $\hat{A}_i=0$;
+\EndIf
+\State $M \leftarrow 0$; $j \leftarrow 1$;
+\While {$j \leq r$}		\label{ln:loop1}
+	\If {$|\overline{t}_i^{(k_j)}-t_i^{(k_j)}|>M$}
+		\State $M \leftarrow |\overline{t}_i^{(k_j)}-t_i^{(k_j)}|$;
+	\EndIf
+	\State $j \leftarrow j+1$;
+\EndWhile		\label{ln:loop2}
+\State {\bf return} $\hat{A}_i=\frac{r+1}{r}M$;
+\end{algorithmic}
+\end{small}
+\end{algorithm}
+
+Theorem \ref{thm:unbiased} gives the theoretic analysis of the correctness of Algorithm \ref{alg:estimation}, assuming the perturbation distributions remain the same from game to game, and for most scenarios each participatory user $i$'s strategy is larger than its perturbation size $A_i$. The estimation of Algorithm \ref{alg:estimation} is \emph{unbiased}, implying the expected value of the estimated result $\hat{A}_i$ is exactly $A_i$ itself. Furthermore, the more previous games we have, the more accurate the estimation will be.
+\begin{theorem}
+\label{thm:unbiased}
+Let $\hat{A}_i$ be the estimated value of Algorithm \ref{alg:estimation}. Then we have
+\begin{eqnarray}
+\operatorname{E}(\hat{A}_i)=A_i\\
+\lim_{r\rightarrow +\infty}\operatorname{Var}(\hat{A}_i)=0
+\end{eqnarray}
+\end{theorem}
+
+\begin{IEEEproof}
+Let $X_1,X_2,\cdots,X_r$ be a sequence of random variables s.t. $X_j=\frac{r+1}{r}|\overline{t}_i^{(k_j)}-t_i^{(k_j)}|$. Let random variable $Y=\max_{1\leq j\leq r}X_j/A_i$. Thus $A_iY$ is the estimated value of $A_i$ and $A_iY=\hat{A}_i$ in Algorithm \ref{alg:estimation}. Then the cumulative distribution function of $Y$ is \footnote{Appendix \ref{sec:dcdfy} gives the detailed discussions.}
+\begin{equation}
+\label{eqn:cdfy}
+P(Y\leq y)=\begin{cases}(\frac{r}{r+1}y)^r, \quad y\in [0, \frac{r+1}{r}],\\
+1, \quad y>\frac{r+1}{r}.
+\end{cases}
+\end{equation}
+Then the probability density function of $Y$ is
+\begin{equation}
+p(y)=\frac{\,dP(Y\leq y)}{\,dy}=r(\frac{r}{r+1})^ry^{r-1},
+\end{equation}
+with the support interval $y\in (0, \frac{r+1}{r})$. The expected value of $Y$ is
+\begin{equation}
+\begin{aligned}
+\operatorname{E}(Y) &=\int_0^{\frac{r+1}{r}}p(y)y \,dy = \int_0^{\frac{r+1}{r}}r(\frac{r}{r+1})^ry^r \,dy = 1.
+\end{aligned}
+\end{equation}
+The variance of $Y$ is
+\begin{equation}
+\operatorname{Var}(Y) = \int_0^{\frac{r+1}{r}}(y-\operatorname{E}(Y))^2p(y) \,dy = \frac{(r+1)^2}{r(r+2)}-1.% \xrightarrow{r\rightarrow +\infty} 0
+\end{equation}
+Thus we have $\operatorname{E}(\hat{A}_i)=\operatorname{E}(A_iY)=A_i\operatorname{E}(Y)=A_i$ and
+\begin{equation}
+\lim_{r\rightarrow +\infty}\operatorname{Var}(\hat{A}_i)=\lim_{r\rightarrow +\infty}A_i^2\operatorname{Var}(Y) = 0.
+\end{equation}
+\end{IEEEproof}
+
+{\color{black}
+Here we have some discussions on Algorithm \ref{alg:estimation}.
+
+\noindent \textbf{\underline{Complexity}} The complexity of Algorithm \ref{alg:estimation} is linear to the number of the games $r$, since it takes a loop (line \ref{ln:loop1} to \ref{ln:loop2}) to accumulate all the previous games and updates the estimation after each round. Thus we can say the time complexity of Algorithm \ref{alg:estimation} is $O(r)$. If the user needs to estimate for all the $n$ users, it will run Algorithm \ref{alg:estimation} for each participatory user. Thus the overall complexity will be $O(nr)$.
+
+\noindent \textbf{\underline{Adaptiveness}} We point out a noticeable property of Algorithm \ref{alg:estimation} is that it can adapt to the system-wide change, for example, the constantly changing perturbation distributions. Since too old games have relatively less valuable information to learn from, the user can simply ignore them by choosing a proper $r$, the number of previous games to observe. The choice of $r$ depends on the network status. \footnote{$r$ will be relatively large if the network is believed to be stable, whereas it will be decreased if the network has experienced major changes or accidents.} Thus Algorithm \ref{alg:estimation} is a quite flexible solution for the users, and the estimated results can capture the latest status of the users.
+
+\noindent \textbf{\underline{Interactions with Algorithm \ref{alg:THP} and \ref{alg:platform}}} We can directly feed the outputs of Algorithm \ref{alg:estimation} to both Algorithm \ref{alg:THP} and \ref{alg:platform} as the inputs. Since the network environment always keeps changing, we can hardly tell the \emph{exact} perturbation distributions. After all, the estimated distributions can only be extracted from the previous game experience, and Algorithm \ref{alg:estimation} is one of the alternatives.
+}
+
+\section{Simulation}
+\label{sec:simulation}
+
+% figures of the first model evaluation
+\begin{figure*}[!t]
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{T_users.eps}
+	\caption{Impact of the number of users on running time}
+	\label{fig:T_users}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{u0_Amax_Kmax.eps}
+	\caption{Impact of $A_{max}$ and $\kappa_{max}$ on platform utility}
+	\label{fig:u0_Amax_Kmax}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{u0_lambda.eps}
+	\caption{Impact of the revenue coefficient on platform utility}
+	\label{fig:u0_lambda}
+\end{minipage}
+\end{figure*}
+
+In order to evaluate the performance of our system, we implemented the incentive mechanism for the crowdsourcing game with uncertainty perturbation. We have the following performance metrics: 1) running time, 2) average user utility, 3) platform utility and 4) the number of participating users. For the sequential games, we evaluate the performance of the estimation on two metrics: 1) absolute error and 2) variance.
+
+\subsection{Simulation setup}
+For the crowdsourcing game with uncertainty perturbation, we assume the cost unit $\kappa$ of each user was distributed uniformly over $[1,\kappa_{max}]$, and $|A_i|$ of any user $i$ was distributed uniformly over $[0,A_{max}]$. There are four variables: a) number of users $n$ (from 100 to 1000 with the increment of 100), b) the revenue coefficient $\lambda$ (from 10 to 100 with the increment of 10), c) $\kappa_{max}$ (from 1 to 10 with the increment of 1) and d) $A_{max}$ (from 0 to 1 with the increment of 0.1). If we need to fix some variables, the default values are: $n=1000$, $\lambda=50$, $\kappa_{max}=5$ and $A_{max}=0.5$.
+The simulations were run on a Linux workstation (2.0 GHz CPU and 32 GB memory). Each result is averaged over 1000 instances.
+
+\subsection{Simulation of the Crowdsourcing Incentive Mechanism with Uncertainty Perturbation}
+
+\begin{figure*}[!t]
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{ui_Amax_Kmax.eps}
+	\caption{Impact of $A_{max}$ and $\kappa_{max}$ on average user utility}
+	\label{fig:ui_Amax_Kmax}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{ui_lambda.eps}
+	\caption{Impact of the revenue coefficient on average user utility}
+	\label{fig:ui_lambda}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{S_lambda_Kmax.eps}
+	\caption{Impact of the revenue coefficient and $\kappa_{max}$ on $|\mathcal{S}|$}
+	\label{fig:S_lambda_Kmax}
+\end{minipage}
+\end{figure*}
+% end figures
+
+\begin{itemize}
+\item \emph{Running Time}: The running time of the incentive mechanism includes strategizing the reward and the THP profile. Fig. \ref{fig:T_users} shows the impact of the number of users on running time. The running time increases linearly with the number of users, and it is less than 5.00 ms for 1000 users.
+
+\item \emph{Platform Utility $\overline{u}_0$}: We analyze the impact of $A_{max}$, $K_{max}$ and $\lambda$ on $\overline{u}_0$. Fig. \ref{fig:u0_Amax_Kmax} shows: 1) If $\kappa_{max}$ is fixed, $\overline{u}_0$ reduces greatly when the uncertainty perturbations get more diverse; 2) Without sensing {\color{black}uncertainty perturbations}, $\overline{u}_0$ diminishes when $\kappa_{max}$ increases, as \cite{yang:crowdsourcing} demonstrated. Fig. \ref{fig:u0_lambda} presents $\overline{u}_0$ almost increases linearly with $\lambda$, as (\ref{eqn:platform_utility}) indicates.
+
+\item \emph{Average User Utility}: We analyze the impact of $A_{max}$, $K_{max}$ and $\lambda$ on average user utility $\overline{u}=\frac{1}{n}\sum_{i\in\mathcal{U}}\overline{u}_i$. Fig. \ref{fig:ui_Amax_Kmax} shows $\overline{u}$ increases when the cost units and {\color{black}uncertainty characteristics} get more diverse. In this case, the platform will release more reward according to Theorem \ref{thm:te_exists}. Thus $\overline{u}$ will increase as well. Fig. \ref{fig:ui_lambda} shows $\overline{u}$ increases when $\lambda$ increases. This is because there will be more reward when $\lambda$ is larger based on the maximum point $R=\lambda-\frac{\sum_j\in\mathcal{S}\kappa_j}{|\mathcal{S}|-1}$, if any.
+
+\item \emph{Number of Participating Users $|\mathcal{S}|$}: We analyze the impact of $\kappa_{max}$, $\lambda$ and $A_{max}$ on $\mathcal{S}$. Fig. \ref{fig:S_lambda_Kmax} shows 1) There will be more users participating in the game when $\lambda$ is larger, because larger $\lambda$ will release more reward to attract users. For the extreme case $\kappa_{max}=1$, all the users participate in the game because they have equal competition. However, if $\lambda$ is too low, the system cannot afford so many users and leads to trivial THP; 2) If the cost units get more diverse, $|\mathcal{S}|$ diminishes as \cite{yang:crowdsourcing} discussed. Fig. \ref{fig:S_Amax} shows $|\mathcal{S}|$ decreases when $A$ gets more diverse. If $A$ is more diverse, there will be more risk the incentive mechanism comes to trivial THP as the bound $\underline{B}$ in Algorithm \ref{alg:platform} is higher. Thus, we hope the {\color{black}uncertainty perturbation on} each user is as low as possible.
+
+\end{itemize}
+
+\subsection{Simulation of the Sequential Crowdsourcing Incentive Mechanism with Uncertainty Perturbation}
+
+% figures of the second model simulation
+\begin{figure*}[!t]
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{S_Amax.eps}
+	\caption{Impact of $A_{max}$ on $|\mathcal{S}|$}
+	\label{fig:S_Amax}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{expect.eps}
+	\caption{Absolute errors of $\hat{A}_{23}$}
+	\label{fig:expect}
+\end{minipage}
+\hspace{0.2cm}
+\begin{minipage}[b]{0.3\linewidth}
+	\centering
+	\includegraphics[width=\textwidth]{var.eps}
+	\caption{Variances of $\hat{A}_{23}$}
+	\label{fig:var}
+\end{minipage}
+\end{figure*}
+% end figures
+
+For the sequential crowdsourcing games with uncertainty perturbation, we observed the estimation $\hat{A}_{23}$. We had 100 sequential games, and we calculated the estimated value $\hat{A}_{23}$ for each round of game. The actual value is $A_{23}=0.5$.
+\begin{itemize}
+\item \emph{Absolute error}: The absolute error $\Delta_i$ of $\hat{A}_i$ is defined as $\Delta_i = |\hat{A}_i - A_i|$. Fig. \ref{fig:expect} shows the absolute errors of $\hat{A}_{23}$ converge to zero when the number of previous games grows, though there are slight fluctuations when $r$ is not large enough. It verifies that our estimation can be very accurate if there are sufficient previous games. That is, the estimation is unbiased.
+
+\item \emph{Variance}: We ran the 100 sequential games for 1000 times, and achieved 1000 groups of $\hat{A}_{23}$. Then we calculated the variances of $\hat{A}_{23}$ among the 1000 groups. Fig. \ref{fig:var} shows the variances converge to zero when the number of previous games grows. It verifies that our estimation is very stable given sufficient previous games.
+
+\end{itemize}
+
+\section{Related Works}
+\label{sec:related_work}
+For the crowdsourcing with each user determines its own sensing time, Yang et. al \cite{yang:crowdsourcing} proposed the first incentive mechanism using Nash Equilibria to maximize the users and the platform's utilities. As Nash Equilibrium has strong assumptions on the complete information, it derives several refinements, such as Bayesian Perfect Equilibrium \cite{harsanyi:bayesian} and Trembling-Hand Perfect Equilibrium \cite{selten:te}\cite{van1997games}\cite{wolpert2009trembling}\cite{mittal2011trembling}. Azar et al. \cite{azar:bayesian} designed auction-based incentive mechanism by modeling the crowdsourcing as a Bayesian game. To the best of our knowledge, there is not yet any incentive mechanism using Trembling-Hand Perfect Equilibrium for crowdsourcing. Besides, many other existing works focused on \emph{auction-based} and \emph{strategy-proof} incentive mechanism of crowdsourcing \cite{satzger:market_auction} \cite{afuah:local_search} \cite{lev:all_pay_auction} \cite{huang:strategy_proof} \cite{babaioff:strategy_proof} \cite{koutsopoulos2013optimal}. The objective of auction-based incentive mechanism is to stimulate the participating users at the finest granularity \cite{satzger:market_auction}. Afuah et al. \cite{afuah:local_search} studied \emph{local search-based auction} for crowdsourcing, giving local search algorithm to solve crowdsourcing problems efficiently. Lev et al. \cite{lev:all_pay_auction} researched the case of bidder collusion in \emph{all-pay auction} and found several positive effects of collusion on crowdsourcing. On the other hand, researchers used strategy-proof incentive mechanism to avoid cheating in bidding, i.e. false-reporting sensing costs \cite{feng:imac}. Huang et al. \cite{huang:strategy_proof} studied strategy-proof and privacy preserving spectrum auction mechanism. Babaioff et al. \cite{babaioff:strategy_proof} modeled crowdsourcing as multiple buyers and the single seller with limited supply, and proposed strategy-proof mechanism to defend against buyers' collusion and privacy leakage. Koutsopoulos \cite{koutsopoulos2013optimal} gave a detailed theoretic treatment on truthful crowdsensing incentive mechanisms. Clearly the researchers are considering more and more real-world issues of crowdsourcing, such as truthfulness and privacy preservation.
+
+\section{Conclusion}
+\label{sec:conclusion}
+In this paper, we have designed incentive mechanisms for crowdsourcing with sensing time uncertainty. Our contributions have filled the void of the research of crowdsourcing with uncertainty. We have introduced the perturbed game model and used Trembling-Hand Perfect Equilibria to maximize each user's utility. We have proposed the algorithm to calculate THP of the perturbed game, if it exists. We also have proposed the algorithm to strategize the total reward for the platform. For the sequential games, we have designed the algorithm to estimate the maximum uncertainty perturbations of the users. We have shown that our estimation is unbiased and it will converge correctly while accumulating the experience of games that happened. Extensive experiments have rigorously verified our incentive mechanism is incentive-compatible, optimal and efficient.
+
+\bibliographystyle{./IEEEtran}
+\bibliography{./new}
+
+\appendix
+\subsection{Discussions on Our Assumptions of Perturbation's Probability Distribution}
+\label{sec:dis_assume}
+We may treat the perturbation on sensing time as a measurement error, which applies normal distribution \cite{wmb}. However, for our sensing scenario, we cannot directly apply normal distribution since the physical limitation (i.e. the sensing time must be nonnegative, and sensing system can also eliminate the extremely large perturbations) and thus we have to seek another solution \cite{burkardt2014truncated}. In \cite{burkardt2014truncated} and \cite{damien2001sampling}, if such sum is bounded, it applies to a truncated normal distribution with an adjusted mean value. Similarly to normal distribution, a truncated normal distribution has its highest probability density at its mode, and the density decreases with the distance from the mode. In other words, the distribution curve is still like a bell on the support interval. However, the truncated normal distribution may be asymmetric if its mean does not coincide with its mode. Intuitively its bell curve is not symmetric on the support interval (see the blue line in Figure \ref{fig:R_trunc}). Fortunately, we can show that the mean of truncated normal distribution is approximately the middle point of the support interval, assuming the perturbation is much smaller than the standard deviation of the original normal distribution. This assumption makes sense since the sensing system may take procedures to significantly reduce the errors and uncertainties in sensing \cite{cochran1968errors}.
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.4\textwidth]{R_trunc.eps}
+\caption{This plot generated by R program gives two scenarios of the truncated normal distribution endorsed by standard normal distribution over the support interval $(a,b)$. Here the red curve is symmetric and the blue one (with overplotted points) is asymmetric.}
+\label{fig:R_trunc}
+\end{figure}
+
+Now we calculate the mean $\mu'$ of truncated normal distribution on the support interval $(a, b)$. The endorsing normal distribution is $\mathcal{N}(\mu, \sigma^2)$, in which $a < \mu < b$ and $b-a<<\sigma$ as assumed. \cite{burkardt2014truncated} gives the mean of truncated normal distribution as follows:
+\begin{equation}
+\label{eqn:trunc_mean}
+\mu' = \mu - \frac{\phi(\frac{b-\mu}{\sigma}) - \phi(\frac{a-\mu}{\sigma})}{\Phi(\frac{b-\mu}{\sigma}) - \Phi(\frac{a-\mu}{\sigma})}\sigma,
+\end{equation}
+in which $\phi$ is the probability density function (pdf) of standard normal distribution $\mathcal{N}(0,1)$, and $\Phi$ is the cumulative distribution function (cdf) of $\mathcal{N}(0,1)$. Since $b-a << \sigma$, we have for any $a<x<b$,
+\begin{equation}
+\begin{aligned}
+\phi(\frac{x-\mu}{\sigma}) = &\frac{1}{\sqrt{2\pi}}e^{-\frac{(x-\mu)^2}{2\sigma^2}}\\
+= &\frac{1}{\sqrt{2\pi}}(1-\frac{(x-\mu)^2}{2\sigma^2}+o((\frac{x-\mu}{\sigma})^3)) \\
+\approx &\frac{1}{\sqrt{2\pi}}(1-\frac{(x-\mu)^2}{2\sigma^2}).
+\end{aligned}
+\end{equation}
+In other words, we omit the terms with degree higher than the second order of $(b-a)/\sigma$. Hence
+\begin{equation}
+\label{eqn:pdf_diff}
+\phi(\frac{b-\mu}{\sigma}) - \phi(\frac{a-\mu}{\sigma}) = -\frac{1}{\sqrt{2\pi}}\frac{b^2-a^2 - 2(b-a)\mu}{2\sigma^2}.
+\end{equation}
+One may treat the cdfs in a similar way:
+\begin{equation}
+\label{eqn:cdf_diff}
+\begin{aligned}
+&\Phi(\frac{b-\mu}{\sigma}) - \Phi(\frac{a-\mu}{\sigma}) \\
+= &\int_{\frac{a-\mu}{\sigma}}^{\frac{b-\mu}{\sigma}} \frac{1}{\sqrt{2\pi}}e^{-\frac{x^2}{2}} \,dx \approx \frac{1}{\sqrt{2\pi}}\int_{\frac{a-\mu}{\sigma}}^{\frac{b-\mu}{\sigma}} 1 - \frac{x^2}{2} \,dx \\
+= &\frac{1}{\sqrt{2\pi}}\left(\frac{b-\mu}{\sigma} - \frac{a-\mu}{\sigma} -\frac{1}{6}\left( (\frac{b-\mu}{\sigma})^3 - (\frac{a-\mu}{\sigma})^3 \right) \right) \\
+\approx & \frac{1}{\sqrt{2\pi}}\frac{b-a}{\sigma}.
+\end{aligned}
+\end{equation}
+Substitute (\ref{eqn:pdf_diff}) and (\ref{eqn:cdf_diff}) into (\ref{eqn:trunc_mean}), we have
+\begin{equation}
+\mu' = \mu + \frac{b^2-a^2 - 2(b-a)\mu}{2\sigma^2\frac{b-a}{\sigma}}\sigma = \frac{b+a}{2},
+\end{equation}
+which is exactly the middle point of the support interval $(a,b)$.
+
+\subsection{Discussions on Equation (\ref{eqn:cdfy})}
+\label{sec:dcdfy}
+Similarly as above, \cite{burkardt2014truncated} gives the pdf of truncated normal distribution on support interval $(a,b)$:
+\begin{equation}
+p(x) = \frac{1}{\sigma}\frac{\phi(\frac{x-\mu}{\sigma})}{\Phi(\frac{b-\mu}{\sigma}) - \Phi(\frac{a-\mu}{\sigma})}.
+\end{equation}
+Given $b-a << \sigma$, we have
+\begin{equation}
+p(x) = \frac{1}{b-a}\left( 1-\frac{(x-\mu)^2}{2\sigma^2} \right) \approx \frac{1}{b-a}
+\end{equation}
+For $r$ previous games, we calculate the cdf of the random variable $X_j$ for user $i$ as follows: for any $\xi < A_i$,
+\begin{equation}
+\label{eqn:xj}
+\begin{aligned}
+&P(X_j \leq \frac{r+1}{r}\xi) = P(|\overline{t}_i - t_i|\leq \xi)\\
+= &\int_{\max\{\overline{t}_i-\xi, a\}}^{\min\{\overline{t}_i+\xi, b\}} \frac{1}{b-a} dx \approx \frac{2\xi}{b-a} = \frac{\xi}{A_i},
+\end{aligned}
+\end{equation}
+in which the approximation assumes that for most cases, the participatory users have large enough sensing time strategies s.t. $\overline{t}_i>A_i$. Hence
+\begin{equation}
+\begin{aligned}
+&P(\max_{1\leq j \leq r}X_j \leq \frac{r+1}{r}\xi) = P(\bigwedge_{j=1}^r X_j \leq \frac{r+1}{r}\xi) \\
+= &\prod_{j=1}^r P(X_j \leq \frac{r+1}{r}\xi) = \left(\frac{\xi}{A_i}\right)^r.
+\end{aligned}
+\end{equation}
+Or equivalently for any $0<y<\frac{r+1}{r}$,
+\begin{equation}
+P(Y \leq y) = P(\max_{1\leq j \leq r}X_j \leq y A_i) = \left(\frac{r}{r+1}y\right)^r,
+\end{equation}
+which gives (\ref{eqn:cdfy}).
+\end{document}
